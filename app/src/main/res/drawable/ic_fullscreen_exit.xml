@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gerado por tools/svg_to_vector.py a partir de fullscreen_exit.svg. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12.65,42V35.35H6v-3h9.65V42h-3Zm19.7,0V32.35H42v3H35.35V42h-3ZM6,15.65v-3h6.65V6h3v9.65H6Zm26.35,0V6h3v6.65H42v3H32.35Z"/>
+</vector>

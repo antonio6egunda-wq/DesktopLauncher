@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gerado por tools/svg_to_vector.py a partir de volume_mute.svg. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M14,30V18h8L32,8V40L22,30H14Zm3-3h6.35L29,32.45V15.6L23.35,21H17v6Zm5.95-3Z"/>
+</vector>
