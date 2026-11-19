@@ -47,6 +47,9 @@ img:not([src]) { visibility: hidden; }
   clip: rect(0 0 0 0); white-space: nowrap;
 }
 
+/* Ícones: por omissão são brancos e ficam centrados no botão. */
+img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
+
 /* ---------- Ambiente de trabalho ---------- */
 
 .desktop {
@@ -94,6 +97,9 @@ img:not([src]) { visibility: hidden; }
   outline: 0;
 }
 
+/* Ícones afixados podem ser arrastados: o gesto não pode ser roubado pelo scroll. */
+.pinned-tile { touch-action: none; }
+
 .desk-tile {
   width: 92px;
   min-height: 88px;
@@ -103,7 +109,8 @@ img:not([src]) { visibility: hidden; }
   text-align: center;
 }
 
-.desk-tile > img {
+.desk-tile > img,
+.app-tile > img {
   width: 40px;
   height: 40px;
   object-fit: contain;
@@ -122,7 +129,7 @@ img:not([src]) { visibility: hidden; }
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
-/* Pequeno pino no canto dos ícones que estão afixados. */
+/* Pino no canto dos ícones que estão afixados. */
 .pin-badge {
   position: absolute;
   top: 4px;
@@ -134,7 +141,20 @@ img:not([src]) { visibility: hidden; }
   background: rgba(16, 24, 32, 0.85);
 }
 
-/* ---------- Barra de tarefas ---------- */
+/* Durante o arrasto: o ícone segue o dedo e o destino fica destacado. */
+.dragging {
+  opacity: 0.8;
+  z-index: 5;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  background: var(--surface-raised);
+}
+.drop-target {
+  outline: 2px dashed var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Barra de tarefas (dock) ---------- */
 
 .taskbar {
   position: absolute;
@@ -143,8 +163,7 @@ img:not([src]) { visibility: hidden; }
   bottom: 0;
   z-index: 10;
   height: var(--taskbar-h);
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: 6px;
   padding: 0 8px;
@@ -161,6 +180,7 @@ img:not([src]) { visibility: hidden; }
   display: grid;
   place-items: center;
   position: relative;
+  flex: 0 0 auto;
   transition: background var(--t-fast) var(--ease);
 }
 
@@ -178,17 +198,27 @@ img:not([src]) { visibility: hidden; }
   background: var(--accent);
 }
 
-.start-btn { justify-self: start; }
 .start-btn img { width: 24px; height: 24px; }
 
+/* Zona central: ocupa o espaço que sobra entre o botão Iniciar e os controlos. */
+.dock-zone {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .dock {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 4px;
-  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
   padding: 0 2px;
+  border-radius: var(--radius-md);
 }
 .dock::-webkit-scrollbar { display: none; }
 
@@ -204,9 +234,10 @@ img:not([src]) { visibility: hidden; }
   display: flex;
   align-items: center;
   gap: 4px;
-  justify-self: end;
+  flex: 0 0 auto;
 }
 
+.volume-btn img,
 .tray-btn img { width: 22px; height: 22px; }
 
 .notification-dot {
@@ -221,7 +252,7 @@ img:not([src]) { visibility: hidden; }
 }
 
 .clock {
-  min-width: 60px;
+  min-width: 56px;
   padding: 0 4px;
   display: flex;
   flex-direction: column;
@@ -231,10 +262,57 @@ img:not([src]) { visibility: hidden; }
 }
 .clock small { font-size: 10px; color: var(--muted); }
 
+/* Pesquisa da dock: ícone com campo de texto, expande ao focar. */
+.dock-search-form {
+  flex: 0 1 200px;
+  min-width: 140px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.10);
+  overflow: hidden;
+  transition: flex-basis var(--t-panel) var(--ease);
+}
+.dock-search-form input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 0 10px;
+  font-size: 12px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.dock-search-form input::placeholder { color: var(--muted); }
+.dock-search-form button {
+  flex: 0 0 34px;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+.dock-search-form button img { width: 18px; height: 18px; }
+
 /* Ecrãs largos (tablet ou modo paisagem): dock centrado na barra. */
 @media (min-width: 700px) {
-  .taskbar { grid-template-columns: 1fr auto 1fr; }
   .dock { justify-content: center; overflow: visible; }
+}
+
+/* Ecrãs estreitos: a pesquisa fica reduzida a um ícone e só se expande ao toque. */
+@media (max-width: 520px) {
+  .taskbar { padding: 0 6px; gap: 4px; }
+  .dock-zone { gap: 4px; }
+  .dock-search-form { flex: 0 0 36px; min-width: 36px; }
+  .dock-search-form input { width: 0; padding: 0; }
+  .dock-search-form:focus-within { flex-basis: 170px; min-width: 170px; }
+  .dock-search-form:focus-within input { width: auto; padding: 0 8px; }
+  .clock { min-width: 48px; }
+  .clock small { display: none; }
+  .start-btn, .dock-btn { min-width: 40px; }
 }
 
 /* ---------- Painéis ---------- */
@@ -245,6 +323,7 @@ img:not([src]) { visibility: hidden; }
   bottom: calc(var(--taskbar-h) + 8px);
   width: min(440px, calc(100% - 20px));
   max-height: calc(100% - var(--taskbar-h) - 24px);
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -268,6 +347,7 @@ img:not([src]) { visibility: hidden; }
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  flex: 0 0 auto;
 }
 .panel-header small {
   font-size: 10px;
@@ -288,10 +368,83 @@ img:not([src]) { visibility: hidden; }
 .icon-btn:active { background: var(--pressed); }
 .icon-btn img { width: 20px; height: 20px; }
 
+/* ---------- Aplicações ---------- */
+
+.user-card {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.055);
+}
+.user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #1687e8, #56b4ff);
+}
+.user-avatar img { width: 20px; height: 20px; }
+.user-meta { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; }
+.user-meta strong { font-size: 13px; }
+.user-meta small, .settings-note { font-size: 11px; color: var(--muted); }
+
+.subtle-btn, .text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #8fc8ff;
+  padding: 8px;
+  border-radius: 7px;
+}
+.subtle-btn img { width: 14px; height: 14px; }
+
+.apps-tabs {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--stroke);
+}
+.tab-btn {
+  padding: 9px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+}
+.tab-btn.active { color: var(--text); border-color: var(--accent); }
+
+/* A vista ativa ocupa o espaço restante do painel e é ela que faz scroll. */
+#appsView {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.search-field {
+  flex: 0 0 auto;
+  position: relative;
+}
+.search-field > img {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin-top: -9px;
+  opacity: 0.7;
+  pointer-events: none;
+}
 .search {
   width: 100%;
   height: 42px;
-  padding: 0 12px;
+  padding: 0 12px 0 38px;
   border: 1px solid var(--stroke);
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.08);
@@ -302,13 +455,15 @@ img:not([src]) { visibility: hidden; }
 .search:focus { border-color: var(--accent); }
 
 .app-grid {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  align-content: start;
   gap: 4px;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 2px;
-  min-height: 0;
 }
 
 .app-tile {
@@ -318,7 +473,6 @@ img:not([src]) { visibility: hidden; }
   gap: 6px;
   text-align: center;
 }
-.app-tile > img { width: 42px; height: 42px; object-fit: contain; }
 
 .empty {
   grid-column: 1 / -1;
@@ -329,11 +483,100 @@ img:not([src]) { visibility: hidden; }
   color: var(--muted);
 }
 
+.launcher-settings {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.launcher-settings h3 { font-size: 14px; margin: 4px 0 10px; }
+
+.setting-row {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 0 10px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.055);
+  font-size: 13px;
+}
+.setting-row img { width: 18px; height: 18px; opacity: 0.85; }
+.setting-row .chevron { margin-left: auto; color: var(--muted); font-size: 18px; }
+.settings-note { margin: 8px 2px 0; line-height: 1.4; }
+
+/* ---------- Centro de notificações ---------- */
+
+.quick-settings {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.quick-toggle {
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
+  font-size: 11px;
+}
+.quick-toggle img { width: 20px; height: 20px; }
+.quick-toggle.active {
+  background: var(--accent-soft);
+  border-color: rgba(22, 135, 232, 0.55);
+}
+
+.range-row {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+}
+.range-row > img { width: 18px; height: 18px; opacity: 0.8; }
+.range-row label { width: 56px; color: var(--muted); flex: 0 0 56px; }
+.range-row input { flex: 1; min-width: 0; accent-color: var(--accent); }
+.mini-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  padding: 7px 9px;
+  background: rgba(255, 255, 255, 0.09);
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.mini-btn img { width: 14px; height: 14px; }
+
+.notification-heading {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  padding-top: 5px;
+  border-top: 1px solid var(--stroke);
+}
+.notification-heading .text-btn { padding: 4px; }
+
+/* Ocupa o espaço que sobra; só esta lista faz scroll e não é recriada a cada atualização. */
 .notification-list {
+  flex: 1 1 auto;
+  min-height: 60px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 60px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -343,13 +586,31 @@ img:not([src]) { visibility: hidden; }
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+  width: 100%;
 }
+.notification-card[data-package] { cursor: pointer; }
+.notification-card[data-package]:active { background: var(--pressed); }
 .notif-app {
   display: block;
   margin-bottom: 4px;
   font-size: 11px;
   color: var(--muted);
 }
+.notification-card { position: relative; }
+.notif-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+}
+.notif-dismiss:active { background: var(--pressed); }
+.notif-dismiss img { width: 16px; height: 16px; opacity: 0.8; }
+.notification-card.has-dismiss strong { padding-right: 28px; }
 .notification-card strong {
   display: block;
   margin-bottom: 4px;
@@ -365,17 +626,28 @@ img:not([src]) { visibility: hidden; }
 }
 
 .primary-btn {
+  flex: 0 0 auto;
   min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   border-radius: var(--radius-md);
   background: var(--accent-soft);
   border: 1px solid rgba(22, 135, 232, 0.5);
   font-size: 14px;
 }
+.primary-btn img { width: 18px; height: 18px; }
 .primary-btn:active { background: rgba(22, 135, 232, 0.4); }
 
+/* ---------- Papel de parede ---------- */
+
 .wallpaper-grid {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
   gap: 10px;
   overflow-y: auto;
   padding: 2px;
@@ -424,6 +696,14 @@ img:not([src]) { visibility: hidden; }
 .ctx-item:active,
 .ctx-item:focus-visible { background: var(--hover); outline: 0; }
 
+/* ---------- Pequenos ecrãs ---------- */
+
+@media (max-width: 520px) {
+  .panel { padding: 12px; }
+  .quick-toggle { font-size: 10px; min-height: 48px; }
+  .range-row label { width: 48px; flex-basis: 48px; }
+}
+
 /* ---------- Movimento reduzido ---------- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -432,32 +712,3 @@ img:not([src]) { visibility: hidden; }
     transition: none !important;
   }
 }
-
-/* v0.3 — pesquisa, perfil, definições e controlos rápidos */
-.user-card{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--stroke);border-radius:var(--radius-md);background:rgba(255,255,255,.055)}
-.user-avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#1687e8,#56b4ff);font-weight:700}
-.user-meta{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
-.user-meta strong{font-size:13px}.user-meta small,.settings-note{font-size:11px;color:var(--muted)}
-.subtle-btn,.text-btn{font-size:11px;color:#8fc8ff;padding:8px;border-radius:7px}
-.apps-tabs{display:flex;gap:6px;border-bottom:1px solid var(--stroke)}
-.tab-btn{padding:9px 12px;color:var(--muted);font-size:13px;border-bottom:2px solid transparent}
-.tab-btn.active{color:var(--text);border-color:var(--accent)}
-.launcher-settings{overflow:auto}.launcher-settings h3{font-size:14px;margin:4px 0 10px}
-.setting-row{width:100%;min-height:44px;text-align:left;padding:0 10px;border-radius:7px;background:rgba(255,255,255,.055);margin:4px 0;font-size:13px}
-.setting-row span{float:right;color:var(--muted)}
-.dock-search-form{display:flex;align-items:center;min-width:100px;max-width:220px;height:36px;flex:1;border:1px solid rgba(255,255,255,.14);border-radius:18px;background:rgba(255,255,255,.10);overflow:hidden}
-.dock-search-form input{width:100%;min-width:0;background:transparent;border:0;outline:0;padding:0 10px;font-size:11px;color:var(--text);-webkit-user-select:text;user-select:text}
-.dock-search-form button{width:34px;flex:0 0 34px;font-size:22px}
-.volume-btn{font-size:19px}
-.quick-settings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
-.quick-toggle{min-height:44px;border-radius:8px;background:rgba(255,255,255,.08);border:1px solid var(--stroke);font-size:11px}
-.quick-toggle.active{background:var(--accent-soft);border-color:rgba(22,135,232,.55)}
-.range-row{display:flex;align-items:center;gap:9px;font-size:12px}
-.range-row label{width:62px;color:var(--muted);flex:0 0 62px}
-.range-row input{flex:1;min-width:0;accent-color:var(--accent)}
-.mini-btn{font-size:10px;padding:7px 9px;background:rgba(255,255,255,.09);border-radius:6px}
-.notification-heading{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding-top:5px;border-top:1px solid var(--stroke)}
-.notification-heading .text-btn{padding:4px}
-.dragging{opacity:.45}.drop-target{outline:2px dashed var(--accent);outline-offset:2px}
-.desk-tile,.dock-tile{touch-action:pan-y}
-@media(max-width:520px){.dock-search-form{max-width:130px}.dock-search-form input{font-size:10px}.panel{padding:12px}.quick-toggle{font-size:10px}}

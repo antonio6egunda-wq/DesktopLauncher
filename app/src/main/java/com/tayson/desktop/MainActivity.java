@@ -235,6 +235,18 @@ public class MainActivity extends Activity {
             } catch (Exception ignored) { }
         }
 
+        /** Dispensa uma notificação: remove-a do sistema (se o serviço estiver ligado) e da lista. */
+        @JavascriptInterface
+        public void dismissNotification(String key) {
+            if (key == null || key.isEmpty()) return;
+            try {
+                if (DesktopNotificationListener.instance != null) {
+                    DesktopNotificationListener.instance.cancelNotification(key);
+                }
+            } catch (Exception ignored) { }
+            DesktopNotificationListener.removeStoredNotification(key);
+        }
+
         @JavascriptInterface
         public int getVolume() {
             AudioManager audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);

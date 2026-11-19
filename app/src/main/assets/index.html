@@ -23,24 +23,32 @@
         </button>
       </header>
       <div class="user-card">
-        <div class="user-avatar">T</div>
+        <div class="user-avatar" aria-hidden="true"><img data-icon="ic_account" alt=""></div>
         <div class="user-meta"><strong>Utilizador</strong><small>Desktop Launcher</small></div>
-        <button id="launcherSettingsBtn" class="subtle-btn" type="button">⚙ Configurar</button>
+        <button id="launcherSettingsBtn" class="subtle-btn" type="button">
+          <img data-icon="ic_settings" alt="">Configurar
+        </button>
       </div>
-      <div class="apps-tabs">
-        <button id="appsTabBtn" class="tab-btn active" type="button">Aplicações</button>
-        <button id="settingsTabBtn" class="tab-btn" type="button">Configurações</button>
+      <div class="apps-tabs" role="tablist">
+        <button id="appsTabBtn" class="tab-btn active" type="button" role="tab" aria-selected="true">Aplicações</button>
+        <button id="settingsTabBtn" class="tab-btn" type="button" role="tab" aria-selected="false">Configurações</button>
       </div>
-      <div id="appsView">
-        <label class="sr-only" for="appSearch">Pesquisar aplicações</label>
-        <input id="appSearch" class="search" type="search" placeholder="Pesquisar aplicações…" autocomplete="off">
+      <div id="appsView" role="tabpanel">
+        <div class="search-field">
+          <img data-icon="ic_search" alt="">
+          <label class="sr-only" for="appSearch">Pesquisar aplicações</label>
+          <input id="appSearch" class="search" type="search" placeholder="Pesquisar aplicações…" autocomplete="off">
+        </div>
         <div id="appGrid" class="app-grid"></div>
       </div>
-      <div id="launcherSettingsView" class="launcher-settings" hidden>
-        <h3>Personalização</h3>
-        <button class="setting-row" type="button" data-open-wallpaper>Alterar papel de parede <span>›</span></button>
-        <p class="settings-note">Mantém premida uma aplicação para a afixar ou remover. Arrasta os ícones para organizar a área de trabalho e a Dock.</p>
-        <button class="setting-row" type="button" id="androidSettingsBtn">Definições do Android <span>›</span></button>
+      <div id="launcherSettingsView" class="launcher-settings" role="tabpanel" hidden>
+        <button class="setting-row" type="button" data-open-wallpaper>
+          <img data-icon="ic_wallpaper" alt="">Alterar papel de parede <span class="chevron" aria-hidden="true">›</span>
+        </button>
+        <button class="setting-row" type="button" id="androidSettingsBtn">
+          <img data-icon="ic_settings" alt="">Definições do Android
+        </button>
+        <p class="settings-note">Mantém premida uma aplicação para a afixar ou remover. Arrasta os ícones afixados para os reordenar.</p>
       </div>
     </section>
 
@@ -55,15 +63,37 @@
         </button>
       </header>
       <div class="quick-settings">
-        <button class="quick-toggle" id="wifiToggle" type="button">◉ Wi-Fi</button>
-        <button class="quick-toggle" id="bluetoothToggle" type="button">ᛒ Bluetooth</button>
-        <button class="quick-toggle" id="locationToggle" type="button">⌖ Localização</button>
+        <button class="quick-toggle" id="wifiToggle" type="button" aria-pressed="false">
+          <img id="wifiIcon" data-icon="ic_wifi" alt="">Wi-Fi
+        </button>
+        <button class="quick-toggle" id="bluetoothToggle" type="button" aria-pressed="false">
+          <img data-icon="ic_bluetooth" alt="">Bluetooth
+        </button>
+        <button class="quick-toggle" id="locationToggle" type="button">
+          <img data-icon="ic_location" alt="">Localização
+        </button>
       </div>
-      <div class="range-row"><label for="volumeRange">Volume</label><input id="volumeRange" type="range" min="0" max="100" value="50"><button id="muteBtn" class="mini-btn" type="button">Mute</button></div>
-      <div class="range-row"><label for="brightnessRange">Brilho</label><input id="brightnessRange" type="range" min="1" max="100" value="50"></div>
-      <div class="notification-heading"><strong>Notificações</strong><button id="clearNotificationsBtn" class="text-btn" type="button">Limpar tudo</button></div>
+      <div class="range-row">
+        <img data-icon="ic_volume_up" id="volumeRangeIcon" alt="">
+        <label for="volumeRange">Volume</label>
+        <input id="volumeRange" type="range" min="0" max="100" value="50">
+        <button id="muteBtn" class="mini-btn" type="button">
+          <img data-icon="ic_volume_mute" alt="">Silenciar
+        </button>
+      </div>
+      <div class="range-row">
+        <img data-icon="ic_light_mode" alt="">
+        <label for="brightnessRange">Brilho</label>
+        <input id="brightnessRange" type="range" min="1" max="100" value="50">
+      </div>
+      <div class="notification-heading">
+        <strong>Notificações</strong>
+        <button id="clearNotificationsBtn" class="text-btn" type="button">Limpar tudo</button>
+      </div>
       <div id="notificationList" class="notification-list" aria-live="polite"></div>
-      <button id="notifPermission" class="primary-btn" type="button" hidden>Ativar acesso às notificações</button>
+      <button id="notifPermission" class="primary-btn" type="button" hidden>
+        <img data-icon="ic_notifications_active" alt="">Ativar acesso às notificações
+      </button>
     </section>
 
     <section id="panelWallpaper" class="panel panel-right" role="dialog" aria-labelledby="titleWallpaper" hidden>
@@ -82,19 +112,26 @@
     <div id="ctxMenu" class="context-menu" role="menu" hidden></div>
 
     <footer class="taskbar">
-      <button id="startBtn" class="dock-btn start-btn" type="button" aria-label="Aplicações" aria-expanded="false">
+      <button id="startBtn" class="dock-btn start-btn" type="button" aria-label="Aplicações" aria-expanded="false" title="Aplicações">
         <img data-icon="ic_category" alt="">
       </button>
 
-      <div id="dock" class="dock" role="toolbar" aria-label="Barra de tarefas"></div>
-      <form id="dockSearchForm" class="dock-search-form">
-        <input id="dockSearch" type="search" placeholder="Pesquisar na Web ou aplicações" autocomplete="off">
-        <button type="submit" aria-label="Pesquisar">⌕</button>
-      </form>
+      <div class="dock-zone">
+        <div id="dock" class="dock" role="toolbar" aria-label="Barra de tarefas"></div>
+        <form id="dockSearchForm" class="dock-search-form" role="search">
+          <label class="sr-only" for="dockSearch">Pesquisar na Web ou aplicações</label>
+          <input id="dockSearch" type="search" placeholder="Pesquisar na Web ou aplicações" autocomplete="off" enterkeyhint="search">
+          <button type="submit" aria-label="Pesquisar">
+            <img data-icon="ic_search" alt="">
+          </button>
+        </form>
+      </div>
 
       <div class="taskbar-end">
-        <button id="volumeBtn" class="dock-btn volume-btn" type="button" aria-label="Volume">◖</button>
-        <button id="trayBtn" class="dock-btn tray-btn" type="button" aria-label="Notificações" aria-expanded="false">
+        <button id="volumeBtn" class="dock-btn volume-btn" type="button" aria-label="Volume" title="Volume">
+          <img id="volumeIcon" data-icon="ic_volume_up" alt="">
+        </button>
+        <button id="trayBtn" class="dock-btn tray-btn" type="button" aria-label="Notificações" aria-expanded="false" title="Notificações">
           <img data-icon="ic_notifications" alt="">
           <span id="notificationDot" class="notification-dot" hidden></span>
         </button>

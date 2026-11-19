@@ -6,8 +6,9 @@
 
   const STORE_KEY = 'desktop-launcher.v2';
   const LONG_PRESS_MS = 450;
+  const MOVE_TOLERANCE_PX = 10;   // movimento que cancela o toque longo e inicia o arrasto
   const WALLPAPER_COUNT = 5;
-  const WALLPAPER_FILES = ['00.jpg','01.jpg','02.jpg','03.jpg','04.jpg'];
+  const WALLPAPER_FILES = ['00.jpg', '01.jpg', '02.jpg', '03.jpg', '04.jpg'];
 
   // Ícones de marca usados só quando o sistema não devolve o ícone da app.
   const BRAND_ICONS = [
@@ -39,6 +40,7 @@
   const $ = (id) => document.getElementById(id);
   const $$ = (selector, root) => Array.prototype.slice.call((root || document).querySelectorAll(selector));
   const pad2 = (n) => String(n).padStart(2, '0');
+  const isFocused = (el) => document.activeElement === el;
 
   const bridge = window.Desktop || createPreviewBridge();
 
@@ -47,11 +49,13 @@
     byPackage: new Map(),
     pins: { desktop: [], dock: [] },
     wallpaper: 0,
+    drag: null,          // { pkg, zone } enquanto um ícone afixado está a ser arrastado
   };
   const iconCache = new Map();
   let openPanelId = null;
-  let longPressFired = false;
+  let longPressFired = false;   // o gesto que acabou de acontecer não deve contar como toque
   let notificationsEnabled = false;
+  let notificationSignature = '';
 
   const PANELS = { apps: 'panelApps', notif: 'panelNotif', wallpaper: 'panelWallpaper' };
 
@@ -66,9 +70,22 @@
       getIcon: () => '',
       openApp: (pkg) => console.log('abrir', pkg),
       openNotificationAccess: () => console.log('acesso às notificações'),
+      openAndroidSettings: () => console.log('definições'),
+      openGoogleSearch: (q) => console.log('pesquisar', q),
+      openLocationSettings: () => console.log('localização'),
       getNotifications: () => '[]',
       hasNotificationAccess: () => false,
-      openAndroidSettings: () => console.log('definições'),
+      clearNotifications: () => {},
+      dismissNotification: (key) => console.log('dispensar', key),
+      isWifiEnabled: () => false,
+      toggleWifi: () => false,
+      isBluetoothEnabled: () => false,
+      toggleBluetooth: () => false,
+      getVolume: () => 50,
+      setVolume: () => {},
+      toggleMute: () => {},
+      getBrightness: () => 50,
+      setBrightness: () => {},
     };
   }
 
@@ -112,6 +129,13 @@
   function applyIcon(img, uri) {
     if (uri) img.src = uri;
     else img.removeAttribute('src');
+  }
+
+  /** Muda o ícone de uma imagem já existente (ex.: volume, Wi-Fi). */
+  function setIcon(img, name) {
+    if (!img) return;
+    img.dataset.icon = name;
+    applyIcon(img, featureIcon(name));
   }
 
   function hydrateIcons(root) {
@@ -159,28 +183,37 @@
     return state.pins[zone].indexOf(pkg) !== -1;
   }
 
+  function refreshAfterPinChange() {
+    renderDesktop();
+    renderDock();
+    if (openPanelId === 'apps') renderApps($('appSearch').value);
+  }
+
   function setPinned(zone, pkg, on) {
     const list = state.pins[zone];
     const index = list.indexOf(pkg);
     if (on && index === -1) list.push(pkg);
     if (!on && index !== -1) list.splice(index, 1);
     saveState();
-    renderDesktop();
-    renderDock();
-    if (openPanelId === 'apps') renderApps($('appSearch').value);
+    refreshAfterPinChange();
   }
 
+  /** Coloca `pkg` na zona `zone`, antes de `beforePkg` (ou no fim se for null). */
   function movePinned(zone, pkg, beforePkg) {
     const list = state.pins[zone];
     const oldIndex = list.indexOf(pkg);
     if (oldIndex !== -1) list.splice(oldIndex, 1);
-    let newIndex = beforePkg ? list.indexOf(beforePkg) : -1;
+    const newIndex = beforePkg ? list.indexOf(beforePkg) : -1;
     if (newIndex < 0) list.push(pkg);
     else list.splice(newIndex, 0, pkg);
     saveState();
-    renderDesktop();
-    renderDock();
-    if (openPanelId === 'apps') renderApps($('appSearch').value);
+    refreshAfterPinChange();
+  }
+
+  function removeFromZone(zone, pkg) {
+    const list = state.pins[zone];
+    const index = list.indexOf(pkg);
+    if (index !== -1) list.splice(index, 1);
   }
 
   function launch(app) {
@@ -188,14 +221,19 @@
     bridge.openApp(app.packageName);
   }
 
-  /* ---------- Tiles, toque longo e menu de contexto ---------- */
+  /* ---------- Toque longo, arrasto e menu de contexto ---------- */
 
   function attachLongPress(element, onLong) {
     let timer = 0;
+    let startX = 0;
+    let startY = 0;
     const cancel = () => { clearTimeout(timer); timer = 0; };
+
     element.addEventListener('pointerdown', (e) => {
       if (e.button > 0) return; // ignora botões secundários e do meio
       cancel();
+      startX = e.clientX;
+      startY = e.clientY;
       timer = setTimeout(() => {
         timer = 0;
         longPressFired = true;
@@ -203,8 +241,103 @@
         onLong();
       }, LONG_PRESS_MS);
     });
+    // Mexer o dedo mais do que a tolerância cancela o toque longo (é um arrasto ou um scroll).
+    element.addEventListener('pointermove', (e) => {
+      if (timer && Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_TOLERANCE_PX) cancel();
+    });
     ['pointerup', 'pointerleave', 'pointercancel'].forEach((type) => element.addEventListener(type, cancel));
     element.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  /** Arrasto por ponteiro (funciona com toque; o drag-and-drop HTML5 não funciona na WebView). */
+  function makePinnedDraggable(button, zone, pkg) {
+    button.classList.add('pinned-tile');
+    button.dataset.packageName = pkg;
+    button.dataset.zone = zone;
+
+    let pointerId = null;
+    let startX = 0;
+    let startY = 0;
+    let dragging = false;
+
+    button.addEventListener('pointerdown', (e) => {
+      if (e.button > 0 || isContextOpen()) return;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      dragging = false;
+    });
+
+    button.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== pointerId || isContextOpen()) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (!dragging) {
+        if (Math.hypot(dx, dy) < MOVE_TOLERANCE_PX) return;
+        dragging = true;
+        longPressFired = true;  // o gesto acaba num arrasto, não num toque
+        try { button.setPointerCapture(pointerId); } catch (err) { /* ignorado */ }
+        button.classList.add('dragging');
+        state.drag = { pkg: pkg, zone: zone };
+      }
+      button.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+      markDropZone(e.clientX, e.clientY);
+    });
+
+    const finish = (e, drop) => {
+      if (e.pointerId !== pointerId) return;
+      pointerId = null;
+      if (!dragging) return;
+      dragging = false;
+      try { button.releasePointerCapture(e.pointerId); } catch (err) { /* ignorado */ }
+      button.classList.remove('dragging');
+      button.style.transform = '';
+      clearDropMarks();
+      if (drop) dropAt(e.clientX, e.clientY);
+      state.drag = null;
+    };
+    button.addEventListener('pointerup', (e) => finish(e, true));
+    button.addEventListener('pointercancel', (e) => finish(e, false));
+  }
+
+  function dropZoneAt(x, y) {
+    const el = document.elementFromPoint(x, y);
+    return el ? el.closest('#dock, #desktopIcons') : null;
+  }
+
+  function markDropZone(x, y) {
+    const zoneEl = dropZoneAt(x, y);
+    $$('.drop-target').forEach((n) => { if (n !== zoneEl) n.classList.remove('drop-target'); });
+    if (zoneEl) zoneEl.classList.add('drop-target');
+  }
+
+  function clearDropMarks() {
+    $$('.drop-target').forEach((n) => n.classList.remove('drop-target'));
+  }
+
+  function dropAt(x, y) {
+    const drag = state.drag;
+    if (!drag) return;
+    const el = document.elementFromPoint(x, y);
+    const zoneEl = el && el.closest('#dock, #desktopIcons');
+    if (!zoneEl) return; // largado fora da barra ou do ambiente de trabalho: não muda nada
+
+    const zone = zoneEl.id === 'dock' ? 'dock' : 'desktop';
+    const list = state.pins[zone];
+    let beforePkg = null;
+
+    const tile = el.closest('.pinned-tile');
+    if (tile && tile.dataset.zone === zone) {
+      if (tile.dataset.packageName === drag.pkg) return; // largou em cima de si próprio
+      const r = tile.getBoundingClientRect();
+      const firstHalf = zone === 'dock' ? x < r.left + r.width / 2 : y < r.top + r.height / 2;
+      const index = list.indexOf(tile.dataset.packageName);
+      beforePkg = firstHalf ? tile.dataset.packageName : (list[index + 1] || null);
+      if (beforePkg === drag.pkg) return; // já está nesse lugar
+    }
+
+    if (drag.zone !== zone) removeFromZone(drag.zone, drag.pkg); // mover de uma zona para a outra
+    movePinned(zone, drag.pkg, beforePkg);
   }
 
   function createTile(opts) {
@@ -245,21 +378,7 @@
     });
 
     if (opts.menu) attachLongPress(button, () => openContextMenu(opts.menu(), button));
-    if (opts.packageName && opts.zone) {
-      button.dataset.packageName = opts.packageName;
-      button.dataset.zone = opts.zone;
-      button.draggable = true;
-      button.addEventListener('dragstart', (e) => {
-        state.dragPackage = opts.packageName;
-        e.dataTransfer.setData('text/plain', opts.packageName);
-        e.dataTransfer.effectAllowed = 'move';
-        button.classList.add('dragging');
-      });
-      button.addEventListener('dragend', () => {
-        button.classList.remove('dragging');
-        $$('.drop-target').forEach(el => el.classList.remove('drop-target'));
-      });
-    }
+    if (opts.zone && opts.packageName) makePinnedDraggable(button, opts.zone, opts.packageName);
     return button;
   }
 
@@ -327,6 +446,7 @@
       if (!app) return;
       box.appendChild(createTile({
         className: 'desk-tile', label: app.name, icon: appIcon(app), showLabel: true,
+        zone: 'desktop', packageName: app.packageName,
         onActivate: () => launch(app),
         menu: () => [
           { label: 'Abrir', action: () => launch(app) },
@@ -344,6 +464,7 @@
       if (!app) return;
       dock.appendChild(createTile({
         className: 'dock-tile', label: app.name, icon: appIcon(app),
+        zone: 'dock', packageName: app.packageName,
         onActivate: () => launch(app),
         menu: () => [
           { label: 'Abrir', action: () => launch(app) },
@@ -372,7 +493,7 @@
       const onDesktop = isPinned('desktop', app.packageName);
       const onDock = isPinned('dock', app.packageName);
       grid.appendChild(createTile({
-        className: 'app-tile', label: app.name, icon: appIcon(app), showLabel: true, packageName: app.packageName, zone: 'apps',
+        className: 'app-tile', label: app.name, icon: appIcon(app), showLabel: true,
         pinned: onDesktop || onDock,
         onActivate: () => launch(app),
         menu: () => [
@@ -427,6 +548,11 @@
   /* ---------- Notificações ---------- */
 
   function renderNotificationList(items) {
+    // Só redesenha quando há mudanças: senão a rolagem salta a cada atualização.
+    const signature = notificationsEnabled ? JSON.stringify(items) : 'sem-acesso';
+    if (signature === notificationSignature) return;
+    notificationSignature = signature;
+
     const list = $('notificationList');
     list.innerHTML = '';
     if (!notificationsEnabled) {
@@ -438,12 +564,12 @@
       return;
     }
     items.forEach((n) => {
-      const card = document.createElement('article');
+      const app = state.byPackage.get(n.packageName);
+      const card = document.createElement('div');
       card.className = 'notification-card';
 
       const appName = document.createElement('span');
       appName.className = 'notif-app';
-      const app = state.byPackage.get(n.packageName);
       appName.textContent = app ? app.name : (n.packageName || '');
 
       const title = document.createElement('strong');
@@ -453,11 +579,41 @@
       body.textContent = n.text || '';
 
       card.append(appName, title, body);
+
+      // Botão para dispensar esta notificação (não abre a app).
+      if (n.key) {
+        card.classList.add('has-dismiss');
+        const dismiss = document.createElement('button');
+        dismiss.type = 'button';
+        dismiss.className = 'notif-dismiss';
+        dismiss.setAttribute('aria-label', 'Dispensar notificação');
+        dismiss.title = 'Dispensar';
+        const icon = document.createElement('img');
+        icon.alt = '';
+        icon.dataset.icon = 'ic_close';
+        applyIcon(icon, featureIcon('ic_close'));
+        dismiss.appendChild(icon);
+        dismiss.addEventListener('click', (e) => {
+          e.stopPropagation();
+          bridge.dismissNotification(n.key);
+          refreshNotifications(true);
+        });
+        card.appendChild(dismiss);
+      }
+
+      // Tocar numa notificação abre a aplicação de origem.
+      if (app) {
+        card.dataset.package = app.packageName;
+        card.setAttribute('role', 'button');
+        card.tabIndex = 0;
+        card.addEventListener('click', () => launch(app));
+        card.addEventListener('keydown', (e) => { if (e.key === 'Enter') launch(app); });
+      }
       list.appendChild(card);
     });
   }
 
-  function refreshNotifications() {
+  function refreshNotifications(force) {
     notificationsEnabled = bridge.hasNotificationAccess() === true;
     let items = [];
     if (notificationsEnabled) {
@@ -465,7 +621,10 @@
     }
     $('notificationDot').hidden = !(notificationsEnabled && items.length);
     $('notifPermission').hidden = notificationsEnabled;
-    if (openPanelId === 'notif') renderNotificationList(items);
+    if (openPanelId === 'notif') {
+      if (force) notificationSignature = '';
+      renderNotificationList(items);
+    }
   }
 
   /* ---------- Pesquisa, controlos rápidos e definições ---------- */
@@ -475,6 +634,8 @@
     $('launcherSettingsView').hidden = false;
     $('appsTabBtn').classList.remove('active');
     $('settingsTabBtn').classList.add('active');
+    $('appsTabBtn').setAttribute('aria-selected', 'false');
+    $('settingsTabBtn').setAttribute('aria-selected', 'true');
   }
 
   function openAppsTab() {
@@ -482,41 +643,45 @@
     $('launcherSettingsView').hidden = true;
     $('appsTabBtn').classList.add('active');
     $('settingsTabBtn').classList.remove('active');
+    $('appsTabBtn').setAttribute('aria-selected', 'true');
+    $('settingsTabBtn').setAttribute('aria-selected', 'false');
     renderApps($('appSearch').value);
+  }
+
+  function volumeIconFor(level) {
+    if (level <= 0) return 'ic_volume_off';
+    if (level < 50) return 'ic_volume_down';
+    return 'ic_volume_up';
+  }
+
+  function setToggle(button, on) {
+    button.classList.toggle('active', on);
+    button.setAttribute('aria-pressed', String(on));
   }
 
   function refreshQuickSettings() {
     try {
-      $('wifiToggle').classList.toggle('active', bridge.isWifiEnabled() === true);
-      $('bluetoothToggle').classList.toggle('active', bridge.isBluetoothEnabled() === true);
-      $('volumeRange').value = bridge.getVolume();
-      $('brightnessRange').value = bridge.getBrightness();
-    } catch (e) { }
-  }
+      const wifi = bridge.isWifiEnabled() === true;
+      const bluetooth = bridge.isBluetoothEnabled() === true;
+      const volume = Number(bridge.getVolume()) || 0;
 
-  function bindDropTarget(element, zone) {
-    element.addEventListener('dragover', (e) => {
-      if (!state.dragPackage) return;
-      e.preventDefault();
-      element.classList.add('drop-target');
-    });
-    element.addEventListener('dragleave', () => element.classList.remove('drop-target'));
-    element.addEventListener('drop', (e) => {
-      e.preventDefault();
-      element.classList.remove('drop-target');
-      const pkg = e.dataTransfer.getData('text/plain') || state.dragPackage;
-      const targetTile = e.target.closest('[data-package-name]');
-      const beforePkg = targetTile && targetTile.dataset.packageName !== pkg
-        ? targetTile.dataset.packageName : null;
-      if (pkg) movePinned(zone, pkg, beforePkg);
-      state.dragPackage = null;
-    });
+      setToggle($('wifiToggle'), wifi);
+      setIcon($('wifiIcon'), wifi ? 'ic_wifi' : 'ic_wifi_off');
+      setToggle($('bluetoothToggle'), bluetooth);
+
+      // Não mexe nos sliders enquanto o utilizador os está a arrastar.
+      if (!isFocused($('volumeRange'))) $('volumeRange').value = volume;
+      if (!isFocused($('brightnessRange'))) $('brightnessRange').value = Number(bridge.getBrightness()) || 50;
+
+      setIcon($('volumeIcon'), volumeIconFor(volume));
+      setIcon($('volumeRangeIcon'), volumeIconFor(volume));
+    } catch (e) { /* ponte indisponível */ }
   }
 
   function searchDock(query) {
     const value = (query || '').trim();
     if (!value) return;
-    const match = state.apps.find(a => a.name.toLowerCase().includes(value.toLowerCase()));
+    const match = state.apps.find((a) => a.name.toLowerCase().includes(value.toLowerCase()));
     if (match) launch(match);
     else bridge.openGoogleSearch(value);
   }
@@ -536,7 +701,8 @@
       loadApps();
       renderApps($('appSearch').value);
     } else if (id === 'notif') {
-      refreshNotifications();
+      refreshQuickSettings();
+      refreshNotifications(true);
     } else if (id === 'wallpaper') {
       renderWallpapers();
     }
@@ -572,18 +738,16 @@
     $('settingsTabBtn').addEventListener('click', openSettingsTab);
     $('launcherSettingsBtn').addEventListener('click', openSettingsTab);
     $('androidSettingsBtn').addEventListener('click', () => bridge.openAndroidSettings());
-    $$('[data-open-wallpaper]').forEach(btn => btn.addEventListener('click', () => openPanel('wallpaper')));
+    $$('[data-open-wallpaper]').forEach((btn) => btn.addEventListener('click', () => openPanel('wallpaper')));
     $('dockSearchForm').addEventListener('submit', (e) => { e.preventDefault(); searchDock($('dockSearch').value); });
     $('volumeBtn').addEventListener('click', () => { bridge.toggleMute(); refreshQuickSettings(); });
     $('muteBtn').addEventListener('click', () => { bridge.toggleMute(); refreshQuickSettings(); });
-    $('volumeRange').addEventListener('input', (e) => bridge.setVolume(Number(e.target.value)));
+    $('volumeRange').addEventListener('input', (e) => { bridge.setVolume(Number(e.target.value)); refreshQuickSettings(); });
     $('brightnessRange').addEventListener('change', (e) => bridge.setBrightness(Number(e.target.value)));
     $('wifiToggle').addEventListener('click', () => { bridge.toggleWifi(); setTimeout(refreshQuickSettings, 700); });
     $('bluetoothToggle').addEventListener('click', () => { bridge.toggleBluetooth(); setTimeout(refreshQuickSettings, 700); });
     $('locationToggle').addEventListener('click', () => bridge.openLocationSettings());
-    $('clearNotificationsBtn').addEventListener('click', () => { bridge.clearNotifications(); refreshNotifications(); });
-    bindDropTarget($('desktopIcons'), 'desktop');
-    bindDropTarget($('dock'), 'dock');
+    $('clearNotificationsBtn').addEventListener('click', () => { bridge.clearNotifications(); refreshNotifications(true); });
     $$('[data-close]').forEach((button) => button.addEventListener('click', closePanels));
 
     document.addEventListener('keydown', (e) => {
@@ -618,6 +782,7 @@
     clock();
     setInterval(clock, 10000);
     loadApps();
+    refreshQuickSettings();
     refreshNotifications();
     setInterval(refreshNotifications, 6000);
     setInterval(refreshQuickSettings, 12000);

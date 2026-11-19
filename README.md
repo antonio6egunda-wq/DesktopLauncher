@@ -88,3 +88,11 @@ Em Android 10 ou superior, aplicações normais já não podem ligar/desligar Wi
 - Removido o atributo `package` obsoleto do Manifest; o namespace continua definido em `app/build.gradle`.
 
 A correção elimina a causa indicada no log de compilação partilhado. A compilação completa ainda deve ser confirmada no GitHub Actions.
+
+## v0.3.2 — correções de interface
+- **Dock**: a barra deixou de partir em duas linhas (o bloco de volume, notificações e relógio ficava fora da barra). A pesquisa fica reduzida a um ícone em ecrãs estreitos e expande ao toque.
+- **Arrastar ícones afixados**: passou a funcionar com toque (antes usava drag-and-drop HTML5, que a WebView do Android não suporta). Arrastar entre o ambiente de trabalho e a dock move o ícone; largar fora da barra ou do ambiente não altera nada.
+- **Painel de aplicações**: a lista faz scroll dentro do painel em vez de transbordar.
+- **Notificações**: a lista só é redesenhada quando há mudanças, por isso a rolagem deixa de saltar a cada atualização. Tocar numa notificação abre a aplicação de origem, e o botão × dispensa-a (remove-a do sistema quando o acesso às notificações está ativo).
+- **Ícones**: todos os símbolos de texto (⚙, ◉, ᛒ, ⌖, ◖, ⌕) foram substituídos por ícones `ic_*`. O ícone de volume e o de Wi-Fi mudam conforme o estado.
+- Os controlos rápidos indicam o estado (`aria-pressed`) e o slider de volume não é reposto enquanto está a ser arrastado.

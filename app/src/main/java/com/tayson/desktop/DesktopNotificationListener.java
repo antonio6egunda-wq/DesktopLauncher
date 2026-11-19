@@ -39,6 +39,12 @@ public class DesktopNotificationListener extends NotificationListenerService {
         super.onDestroy();
     }
 
+    /** Remove uma notificação da lista guardada (chamar a partir de qualquer thread). */
+    public static void removeStoredNotification(String key) {
+        if (key == null) return;
+        synchronized (ITEMS) { removeByKey(key); }
+    }
+
     public static void clearStoredNotifications() {
         synchronized (ITEMS) { ITEMS.clear(); }
     }
