@@ -79,3 +79,12 @@ definições próprias, e o utilizador tem de conceder o acesso manualmente.
 
 ### Limitações impostas pelo Android
 Em Android 10 ou superior, aplicações normais já não podem ligar/desligar Wi-Fi diretamente; o launcher abre o painel oficial do sistema. Em Android 13 ou superior, o controlo direto do Bluetooth também é limitado e abre as definições. A localização abre as definições do sistema porque o Android não permite a um launcher comum alterar silenciosamente esse interruptor. O controlo de brilho pode pedir autorização especial "Modificar definições do sistema".
+
+
+## v0.3.1 — correção de compilação
+- Removida qualquer referência a `androidx.core.app.NotificationManagerCompat`.
+- A autorização do serviço de notificações é verificada pela API nativa `Settings.Secure.ENABLED_NOTIFICATION_LISTENERS`, sem dependência AndroidX adicional.
+- Atualizado `versionCode` para 3 e `versionName` para 0.3.1.
+- Removido o atributo `package` obsoleto do Manifest; o namespace continua definido em `app/build.gradle`.
+
+A correção elimina a causa indicada no log de compilação partilhado. A compilação completa ainda deve ser confirmada no GitHub Actions.

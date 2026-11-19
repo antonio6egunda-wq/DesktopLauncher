@@ -11,8 +11,8 @@ android {
         minSdk 23
         // 33 mantém compatibilidade com AGP 7.4.2. Para subir para 34, atualiza o AGP para 8.x.
         targetSdk 33
-        versionCode 2
-        versionName '0.2.0'
+        versionCode 3
+        versionName '0.3.1'
     }
 
     buildTypes {

@@ -3,7 +3,6 @@ package com.tayson.desktop;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
-import androidx.core.app.NotificationManagerCompat;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
@@ -220,8 +219,10 @@ public class MainActivity extends Activity {
         /** Verifica se o serviço de notificações está ativo nas definições do Android. */
         @JavascriptInterface
         public boolean hasNotificationAccess() {
-            return NotificationManagerCompat.getEnabledListenerPackages(this)
-                    .contains(getPackageName());
+            ComponentName listener = new ComponentName(MainActivity.this, DesktopNotificationListener.class);
+            String enabled = Settings.Secure.getString(
+                    getContentResolver(), Settings.Secure.ENABLED_NOTIFICATION_LISTENERS);
+            return enabled != null && enabled.contains(listener.flattenToString());
         }
 
         @JavascriptInterface
