@@ -221,7 +221,7 @@ public class MainActivity extends Activity {
         public boolean hasNotificationAccess() {
             ComponentName listener = new ComponentName(MainActivity.this, DesktopNotificationListener.class);
             String enabled = Settings.Secure.getString(
-                    getContentResolver(), Settings.Secure.ENABLED_NOTIFICATION_LISTENERS);
+                    getContentResolver(), "enabled_notification_listeners");
             return enabled != null && enabled.contains(listener.flattenToString());
         }
 
