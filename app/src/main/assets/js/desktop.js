@@ -254,7 +254,7 @@
         const brand = brandIconFor(app.name);
         if (brand) uri = featureIcon(brand);
       }
-      if (!uri) uri = featureIcon('ic_category');
+      if (!uri) uri = featureIcon('ic_app');
       iconCache.set(key, uri);
     }
     return iconCache.get(key);
@@ -1101,7 +1101,7 @@
     return [
       { label: 'Definições do Android', icon: 'ic_settings', keys: ['definicoes', 'configuracoes', 'settings', 'android'],
         run: () => bridge.openAndroidSettings() },
-      { label: 'Aplicações', icon: 'ic_category', keys: ['aplicacoes', 'apps', 'aplicativos'],
+      { label: 'Aplicações', icon: 'ic_app', keys: ['aplicacoes', 'apps', 'aplicativos'],
         run: () => openPanel('apps') },
       { label: 'Papel de parede', icon: 'ic_wallpaper', keys: ['papel', 'parede', 'wallpaper', 'fundo'],
         run: () => openPanel('wallpaper') },
