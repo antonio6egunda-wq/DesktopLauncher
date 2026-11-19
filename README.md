@@ -9,7 +9,7 @@ centro de notificações e papel de parede. Usa Java + WebView + HTML/CSS/JavaSc
 - **Barra de tarefas** com botão Iniciar, apps afixadas, notificações (com ponto quando há novidades) e relógio.
 - **Afixar apps**: toque longo num ícone (no painel de aplicações, no desktop ou na barra) abre um menu para afixar ou remover no ambiente de trabalho e na barra. As fixações ficam guardadas no dispositivo.
 - **Ícones reais** das aplicações, lidos do sistema (PackageManager). Quando o sistema não devolve um ícone, usa-se um ícone de marca incluído no projeto.
-- **Papel de parede**: cinco imagens incluídas, escolhidas no painel Personalizar.
+- **Papel de parede**: cinco imagens incluídas ou uma imagem da galeria, escolhidas no painel Papel de parede.
 - **Centro de notificações** que mostra a app de origem e todas as notificações recentes (até 40). Notificações contínuas, como música ou navegação, são ignoradas.
 
 ## Requisitos
@@ -96,3 +96,21 @@ A correção elimina a causa indicada no log de compilação partilhado. A compi
 - **Notificações**: a lista só é redesenhada quando há mudanças, por isso a rolagem deixa de saltar a cada atualização. Tocar numa notificação abre a aplicação de origem, e o botão × dispensa-a (remove-a do sistema quando o acesso às notificações está ativo).
 - **Ícones**: todos os símbolos de texto (⚙, ◉, ᛒ, ⌖, ◖, ⌕) foram substituídos por ícones `ic_*`. O ícone de volume e o de Wi-Fi mudam conforme o estado.
 - Os controlos rápidos indicam o estado (`aria-pressed`) e o slider de volume não é reposto enquanto está a ser arrastado.
+
+## v1.0.0 — perfil, personalização da barra e aplicações
+
+- **Perfil**: nome de utilizador editável (até 24 caracteres) e avatar à escolha entre os dois incluídos (`ic_avatar_00` e `ic_avatar_01`). O perfil aparece no topo do painel de aplicações.
+- **Papel de parede do utilizador**: o botão Galeria abre o seletor de imagens do Android. A imagem é reduzida para 1600 px e guardada no armazenamento interno da app (`wallpaper_custom.jpg`), por isso não depende da galeria depois de escolhida.
+- **Barra de tarefas**: altura da barra (52–84 px) e tamanho dos ícones afixados (20–40 px) ajustáveis em Configurações, com «Repor predefinições».
+- **Volume, notificações e relógio** passam para a extrema direita da barra, separados das apps afixadas por um traço.
+- **Aplicações ocultas**: no menu de toque longo, «Ocultar» retira a app do painel, da pesquisa, do ambiente de trabalho e da barra. As fixações ficam guardadas, por isso voltam a aparecer ao mostrar a app de novo, em Configurações → Aplicações ocultas.
+- **Painel de aplicações redesenhado**: separador em forma de pílula, pesquisa arredondada, ícones maiores em grelha, sem o pino que marcava as apps afixadas.
+- **Configurações** organizadas em secções: Perfil, Aspeto, Barra de tarefas, Aplicações ocultas e Sistema.
+- Versão: `versionName` 1.0.0, `versionCode` 6.
+
+Os dados antigos (versão 0.3.x) são lidos automaticamente na primeira abertura.
+
+### Notas
+- O papel de parede personalizado não fica em `localStorage`: a imagem é lida do armazenamento interno da app pela ponte Java a cada arranque.
+- Ocultar uma app não a desinstala nem remove as fixações; a lista de ocultas está em Configurações.
+

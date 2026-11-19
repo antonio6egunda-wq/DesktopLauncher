@@ -13,7 +13,9 @@
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
+  /* Definidos em JavaScript (preferências da barra); estes são só o valor de arranque. */
   --taskbar-h: 56px;
+  --dock-icon: 30px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --t-fast: 120ms;
   --t-panel: 180ms;
@@ -98,7 +100,7 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   position: relative;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
 
 .desk-tile:active,
@@ -124,8 +126,7 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   text-align: center;
 }
 
-.desk-tile > img,
-.app-tile > img {
+.desk-tile > img {
   width: 40px;
   height: 40px;
   object-fit: contain;
@@ -142,18 +143,6 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   line-height: 1.25;
   overflow-wrap: anywhere;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
-}
-
-/* Pino no canto dos ícones que estão afixados. */
-.pin-badge {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 14px;
-  height: 14px;
-  padding: 2px;
-  border-radius: 50%;
-  background: rgba(16, 24, 32, 0.85);
 }
 
 /* Modo "Organizar": os ícones afixados ganham contorno e podem ser arrastados. */
@@ -198,7 +187,8 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 }
 
 /* ---------- Barra de tarefas ----------
- * Três colunas: [Iniciar] [pesquisa centrada] [apps fixadas + controlos à direita]. */
+ * Cinco colunas: [Iniciar] [espaço] [pesquisa centrada] [espaço] [apps fixadas]  [volume, notificações, relógio].
+ * A zona de sistema fica sempre na extrema direita, separada das apps por um traço. */
 
 .taskbar {
   position: absolute;
@@ -208,7 +198,7 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   z-index: 10;
   height: var(--taskbar-h);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px;
   padding: 0 8px;
@@ -218,28 +208,24 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   border-top: 1px solid var(--stroke);
 }
 
-.taskbar-left {
-  display: flex;
-  justify-content: flex-start;
-  min-width: 0;
-}
-
-.taskbar-center {
-  position: relative;
-  display: flex;
-  justify-content: center;
-}
-
-.taskbar-right {
+.taskbar-left    { grid-column: 1; display: flex; justify-content: flex-start; min-width: 0; }
+.taskbar-center  { grid-column: 3; position: relative; display: flex; justify-content: center; }
+.taskbar-dock    { grid-column: 4; min-width: 0; height: 100%; display: flex; align-items: center; }
+.taskbar-tray {
+  grid-column: 5;
+  height: calc(var(--taskbar-h) - 16px);
   display: flex;
   align-items: center;
-  gap: 4px;
-  min-width: 0;
+  gap: 2px;
+  margin-left: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--stroke);
 }
 
+/* Botões da barra acompanham a altura escolhida. */
 .dock-btn {
-  height: 44px;
-  min-width: 44px;
+  height: calc(var(--taskbar-h) - 14px);
+  min-width: calc(var(--taskbar-h) - 14px);
   border-radius: var(--radius-md);
   display: grid;
   place-items: center;
@@ -266,8 +252,9 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 
 /* Apps fixadas: alinhadas à direita; se não couberem, deslizam. */
 .dock {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-width: 0;
+  height: 100%;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -282,17 +269,14 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 
 .dock-tile {
   flex: 0 0 auto;
-  width: 46px;
-  height: 46px;
+  width: calc(var(--dock-icon) + 12px);
+  height: calc(var(--dock-icon) + 12px);
   justify-content: center;
 }
-.dock-tile > img { width: 30px; height: 30px; object-fit: contain; }
-
-.taskbar-end {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex: 0 0 auto;
+.dock-tile > img {
+  width: var(--dock-icon);
+  height: var(--dock-icon);
+  object-fit: contain;
 }
 
 .volume-btn img,
@@ -300,8 +284,8 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 
 .notification-dot {
   position: absolute;
-  top: 9px;
-  right: 9px;
+  top: 8px;
+  right: 8px;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -421,8 +405,7 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   .volume-btn { display: none; }
   .clock { min-width: 48px; }
   .clock small { display: none; }
-  .start-btn, .dock-btn { min-width: 40px; }
-  .dock-tile { width: 42px; height: 42px; }
+  .taskbar-tray { padding-left: 4px; }
 }
 
 /* ---------- Painéis ---------- */
@@ -478,58 +461,74 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 .icon-btn:active { background: var(--pressed); }
 .icon-btn img { width: 20px; height: 20px; }
 
-/* ---------- Aplicações ---------- */
+/* ---------- Painel de aplicações ---------- */
 
-.user-card {
+.apps-header {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid var(--stroke);
+  gap: 8px;
+}
+
+.profile-chip {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.055);
+  text-align: left;
 }
-.user-avatar {
-  width: 38px;
-  height: 38px;
+.profile-chip:active { background: var(--hover); }
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
   border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, #1687e8, #56b4ff);
+  overflow: hidden;
+  background: var(--surface-raised);
 }
-.user-avatar img { width: 20px; height: 20px; }
-.user-meta { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; }
-.user-meta strong { font-size: 13px; }
-.user-meta small, .settings-note { font-size: 11px; color: var(--muted); }
+.avatar img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.avatar-sm { width: 30px; height: 30px; }
 
-.subtle-btn, .text-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: #8fc8ff;
-  padding: 8px;
-  border-radius: 7px;
+.profile-text { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.profile-text strong {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.subtle-btn img { width: 14px; height: 14px; }
+.profile-text small { font-size: 12px; color: var(--muted); }
 
-.apps-tabs {
+/* Separador em forma de pílula. */
+.segmented {
   flex: 0 0 auto;
   display: flex;
-  gap: 6px;
-  border-bottom: 1px solid var(--stroke);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
 }
-.tab-btn {
-  padding: 9px 12px;
-  color: var(--muted);
+.seg-btn {
+  flex: 1 1 0;
+  height: 34px;
+  border-radius: 999px;
   font-size: 13px;
-  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
-.tab-btn.active { color: var(--text); border-color: var(--accent); }
+.seg-btn.active {
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
 
 /* A vista ativa ocupa o espaço restante do painel e é ela que faz scroll. */
-#appsView {
+.apps-view,
+.launcher-settings {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -543,82 +542,203 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 }
 .search-field > img {
   position: absolute;
-  left: 12px;
+  left: 14px;
   top: 50%;
   width: 18px;
   height: 18px;
   margin-top: -9px;
-  opacity: 0.7;
+  opacity: 0.6;
   pointer-events: none;
 }
 .search {
   width: 100%;
-  height: 42px;
-  padding: 0 12px 0 38px;
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.08);
+  height: 40px;
+  padding: 0 14px 0 40px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
   outline: none;
   -webkit-user-select: text;
   user-select: text;
 }
-.search:focus { border-color: var(--accent); }
+.search:focus { border-color: var(--accent); background: rgba(255, 255, 255, 0.10); }
 
 .app-grid {
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
   align-content: start;
-  gap: 4px;
+  gap: 6px 4px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 2px;
+  padding: 4px 2px;
 }
 
 .app-tile {
-  min-height: 90px;
+  min-height: 88px;
   padding: 8px 4px;
   justify-content: flex-start;
   gap: 6px;
   text-align: center;
+  border-radius: var(--radius-md);
 }
+.app-tile > img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+.app-tile .tile-label { font-size: 11.5px; }
 
 .empty {
   grid-column: 1 / -1;
-  padding: 20px 12px;
+  padding: 24px 12px;
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.45;
   text-align: center;
   color: var(--muted);
 }
 
+/* Definições: grupos de cartões, com título discreto por cima de cada um. */
 .launcher-settings {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
+.settings-section {
+  margin: 8px 4px 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--stroke);
+  overflow: hidden;
 }
 
 .setting-row {
   flex: 0 0 auto;
   width: 100%;
-  min-height: 44px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 13px;
+}
+.setting-row + .setting-row,
+.settings-card > * + * { border-top: 1px solid rgba(255, 255, 255, 0.07); }
+.setting-row:active { background: var(--pressed); }
+
+.row-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+.row-icon img { width: 16px; height: 16px; }
+
+.row-text { display: flex; flex: 1 1 auto; min-width: 0; flex-direction: column; gap: 2px; }
+.row-text strong { font-size: 14px; font-weight: 500; }
+.row-text small { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.chevron { color: var(--muted); font-size: 18px; flex: 0 0 auto; }
+
+.settings-sliders { padding: 4px 12px 0; }
+.settings-sliders .slider-row { padding: 10px 0; }
+.settings-sliders .slider-row + .slider-row { border-top: 1px solid rgba(255, 255, 255, 0.07); }
+.settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 0 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.hidden-list .card-note {
+  margin: 0;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.hidden-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  text-align: left;
-  padding: 0 10px;
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.055);
-  font-size: 13px;
+  padding: 8px 12px;
 }
-.setting-row img { width: 18px; height: 18px; opacity: 0.85; }
-.setting-row .chevron { margin-left: auto; color: var(--muted); font-size: 18px; }
-.settings-note { margin: 8px 2px 0; line-height: 1.4; }
+.hidden-row + .hidden-row { border-top: 1px solid rgba(255, 255, 255, 0.07); }
+.hidden-row > img { width: 28px; height: 28px; object-fit: contain; }
+.hidden-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pill-btn {
+  flex: 0 0 auto;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: #8fc8ff;
+  background: rgba(22, 135, 232, 0.16);
+}
+.pill-btn:active { background: var(--accent-soft); }
+
+.settings-note {
+  margin: 4px 4px 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #8fc8ff;
+  padding: 8px;
+  border-radius: 7px;
+}
+.text-btn:active { background: var(--hover); }
+
+/* Controlos deslizantes (usados nas definições e no centro de ações). */
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.slider-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.slider-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+}
+.slider-head label { color: var(--text); }
+.slider-head output { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.slider-body input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--accent);
+}
 
 /* ---------- Centro de notificações ---------- */
 
@@ -675,11 +795,6 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--stroke);
 }
-.slider-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
 .slider-icon {
   flex: 0 0 34px;
   width: 34px;
@@ -691,20 +806,6 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 }
 .slider-icon:active { background: var(--pressed); }
 .slider-icon img { width: 18px; height: 18px; }
-.slider-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.slider-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-size: 12px;
-}
-.slider-head label { color: var(--text); }
-.slider-head output { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
-.slider-body input[type="range"] {
-  width: 100%;
-  margin: 0;
-  accent-color: var(--accent);
-}
 
 .notification-heading {
   flex: 0 0 auto;
@@ -815,6 +916,19 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   height: 100%;
   object-fit: cover;
 }
+.wallpaper-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px dashed rgba(255, 255, 255, 0.28);
+  font-size: 12px;
+  color: var(--muted);
+}
+.wallpaper-add img { width: 22px; height: 22px; }
+.wallpaper-add:active { background: var(--pressed); }
 
 /* ---------- Menu de contexto (toque longo) ----------
  * Mesmo desenho do menu.html: cartão escuro, itens com ícone e separadores. */
@@ -881,7 +995,7 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 .ctx-item.accent { color: #bd89ff; }
 .ctx-item.accent:hover { background: rgba(56, 45, 71, 0.836); color: #bd89ff; }
 
-/* ---------- Diálogos (renomear, ícone, desinstalar) ---------- */
+/* ---------- Diálogos (renomear, ícone, avatar, desinstalar) ---------- */
 
 .dialog-backdrop {
   position: fixed;
@@ -970,6 +1084,24 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   border-color: var(--accent);
   background: var(--accent-soft);
 }
+
+/* Grelha de escolha de avatares. */
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 6px;
+}
+.avatar-choice {
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  transition: border-color var(--t-fast) var(--ease);
+}
+.avatar-choice img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.avatar-choice[aria-pressed="true"] { border-color: var(--accent); }
 
 /* ---------- Pequenos ecrãs ---------- */
 

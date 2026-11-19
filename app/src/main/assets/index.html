@@ -18,43 +18,96 @@
       <button id="arrangeDone" class="dlg-btn primary" type="button">Concluído</button>
     </div>
 
-    <section id="panelApps" class="panel panel-left" role="dialog" aria-labelledby="titleApps" hidden>
-      <header class="panel-header">
-        <div>
-          <small>Desktop Launcher</small>
-          <h2 id="titleApps">Aplicações</h2>
-        </div>
+    <!-- Painel de aplicações e definições -->
+    <section id="panelApps" class="panel panel-left" role="dialog" aria-labelledby="profileName" hidden>
+      <header class="apps-header">
+        <button id="profileChip" class="profile-chip" type="button" aria-label="Abrir configurações do perfil">
+          <span class="avatar"><img id="headerAvatar" alt=""></span>
+          <span class="profile-text">
+            <strong id="headerName">Utilizador</strong>
+            <small id="headerCount">0 aplicações</small>
+          </span>
+        </button>
         <button type="button" class="icon-btn" data-close aria-label="Fechar">
           <img data-icon="ic_close" alt="">
         </button>
       </header>
-      <div class="user-card">
-        <div class="user-avatar" aria-hidden="true"><img data-icon="ic_account" alt=""></div>
-        <div class="user-meta"><strong>Utilizador</strong><small>Desktop Launcher</small></div>
-        <button id="launcherSettingsBtn" class="subtle-btn" type="button">
-          <img data-icon="ic_settings" alt="">Configurar
-        </button>
+
+      <div class="segmented" role="tablist" aria-label="Secções">
+        <button id="appsTabBtn" class="seg-btn active" type="button" role="tab" aria-selected="true">Aplicações</button>
+        <button id="settingsTabBtn" class="seg-btn" type="button" role="tab" aria-selected="false">Configurações</button>
       </div>
-      <div class="apps-tabs" role="tablist">
-        <button id="appsTabBtn" class="tab-btn active" type="button" role="tab" aria-selected="true">Aplicações</button>
-        <button id="settingsTabBtn" class="tab-btn" type="button" role="tab" aria-selected="false">Configurações</button>
-      </div>
-      <div id="appsView" role="tabpanel">
+
+      <div id="appsView" class="apps-view" role="tabpanel">
         <div class="search-field">
           <img data-icon="ic_search" alt="">
           <label class="sr-only" for="appSearch">Pesquisar aplicações</label>
-          <input id="appSearch" class="search" type="search" placeholder="Pesquisar aplicações…" autocomplete="off">
+          <input id="appSearch" class="search" type="search" placeholder="Pesquisar aplicações" autocomplete="off">
         </div>
         <div id="appGrid" class="app-grid"></div>
       </div>
+
       <div id="launcherSettingsView" class="launcher-settings" role="tabpanel" hidden>
-        <button class="setting-row" type="button" data-open-wallpaper>
-          <img data-icon="ic_wallpaper" alt="">Alterar papel de parede <span class="chevron" aria-hidden="true">›</span>
-        </button>
-        <button class="setting-row" type="button" id="androidSettingsBtn">
-          <img data-icon="ic_settings" alt="">Definições do Android
-        </button>
-        <p class="settings-note">Mantém premida uma aplicação para a renomear, mudar o ícone, afixar, desinstalar ou ver as informações. Para reordenar os ícones afixados, escolhe «Organizar».</p>
+        <p class="settings-section">Perfil</p>
+        <div class="settings-card">
+          <button class="setting-row" type="button" id="avatarRow">
+            <span class="avatar avatar-sm"><img id="settingsAvatar" alt=""></span>
+            <span class="row-text"><strong>Avatar</strong><small>Escolher entre os avatares</small></span>
+            <span class="chevron" aria-hidden="true">›</span>
+          </button>
+          <button class="setting-row" type="button" id="nameRow">
+            <span class="row-icon"><img data-icon="ic_edit" alt=""></span>
+            <span class="row-text"><strong>Nome de utilizador</strong><small id="settingsName">Utilizador</small></span>
+            <span class="chevron" aria-hidden="true">›</span>
+          </button>
+        </div>
+
+        <p class="settings-section">Aspeto</p>
+        <div class="settings-card">
+          <button class="setting-row" type="button" data-open-wallpaper>
+            <span class="row-icon"><img data-icon="ic_wallpaper" alt=""></span>
+            <span class="row-text"><strong>Papel de parede</strong><small>Predefinidos ou imagem da galeria</small></span>
+            <span class="chevron" aria-hidden="true">›</span>
+          </button>
+        </div>
+
+        <p class="settings-section">Barra de tarefas</p>
+        <div class="settings-card settings-sliders">
+          <div class="slider-row">
+            <div class="slider-body">
+              <div class="slider-head">
+                <label for="barHeightRange">Altura da barra</label>
+                <output id="barHeightValue" for="barHeightRange">56 px</output>
+              </div>
+              <input id="barHeightRange" type="range" min="52" max="84" step="1" value="56">
+            </div>
+          </div>
+          <div class="slider-row">
+            <div class="slider-body">
+              <div class="slider-head">
+                <label for="barIconRange">Tamanho dos ícones</label>
+                <output id="barIconValue" for="barIconRange">30 px</output>
+              </div>
+              <input id="barIconRange" type="range" min="20" max="40" step="1" value="30">
+            </div>
+          </div>
+          <div class="settings-footer">
+            <button id="resetBarBtn" class="text-btn" type="button">Repor predefinições</button>
+          </div>
+        </div>
+
+        <p class="settings-section">Aplicações ocultas</p>
+        <div id="hiddenList" class="settings-card hidden-list"></div>
+
+        <p class="settings-section">Sistema</p>
+        <div class="settings-card">
+          <button class="setting-row" type="button" id="androidSettingsBtn">
+            <span class="row-icon"><img data-icon="ic_settings" alt=""></span>
+            <span class="row-text"><strong>Definições do Android</strong></span>
+            <span class="chevron" aria-hidden="true">›</span>
+          </button>
+        </div>
+        <p class="settings-note">Mantém premida uma aplicação para a renomear, mudar o ícone, ocultar, afixar, desinstalar ou ver as informações.</p>
       </div>
     </section>
 
@@ -119,6 +172,7 @@
       </button>
     </section>
 
+    <!-- Papel de parede -->
     <section id="panelWallpaper" class="panel panel-right" role="dialog" aria-labelledby="titleWallpaper" hidden>
       <header class="panel-header">
         <div>
@@ -130,6 +184,7 @@
         </button>
       </header>
       <div id="wallpaperGrid" class="wallpaper-grid"></div>
+      <p class="settings-note">Escolhe um dos predefinidos ou usa uma imagem da tua galeria.</p>
     </section>
 
     <div id="ctxMenu" class="context-menu" role="menu" hidden></div>
@@ -163,20 +218,21 @@
         <div id="searchSuggest" class="search-suggest" role="listbox" aria-label="Sugestões" hidden></div>
       </div>
 
-      <div class="taskbar-right">
+      <div class="taskbar-dock">
         <div id="dock" class="dock" role="toolbar" aria-label="Aplicações fixadas"></div>
-        <div class="taskbar-end">
-          <button id="volumeBtn" class="dock-btn volume-btn" type="button" aria-label="Volume" title="Volume">
-            <img id="volumeIcon" data-icon="ic_volume_up" alt="">
-          </button>
-          <button id="trayBtn" class="dock-btn tray-btn" type="button" aria-label="Notificações" aria-expanded="false" title="Notificações">
-            <img data-icon="ic_notifications" alt="">
-            <span id="notificationDot" class="notification-dot" hidden></span>
-          </button>
-          <div class="clock" aria-live="off">
-            <span id="time">--:--</span>
-            <small id="date"></small>
-          </div>
+      </div>
+
+      <div class="taskbar-tray">
+        <button id="volumeBtn" class="dock-btn volume-btn" type="button" aria-label="Volume" title="Volume">
+          <img id="volumeIcon" data-icon="ic_volume_up" alt="">
+        </button>
+        <button id="trayBtn" class="dock-btn tray-btn" type="button" aria-label="Notificações" aria-expanded="false" title="Notificações">
+          <img data-icon="ic_notifications" alt="">
+          <span id="notificationDot" class="notification-dot" hidden></span>
+        </button>
+        <div class="clock" aria-live="off">
+          <span id="time">--:--</span>
+          <small id="date"></small>
         </div>
       </div>
     </footer>

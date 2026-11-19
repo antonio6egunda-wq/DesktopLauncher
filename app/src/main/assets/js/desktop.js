@@ -1,15 +1,20 @@
-/* Desktop Launcher: ambiente de trabalho, barra de tarefas, painéis e menus.
+/* Desktop Launcher v1.0.0: ambiente de trabalho, barra de tarefas, painéis e menus.
  * Fala com o Android através de window.Desktop (ver MainActivity.java).
  * Fora do Android (ex.: abrir index.html no PC) usa uma ponte de pré-visualização. */
 (function () {
   'use strict';
 
-  const STORE_KEY = 'desktop-launcher.v2';
+  const STORE_KEY = 'desktop-launcher.v3';
+  const LEGACY_KEY = 'desktop-launcher.v2';
   const LONG_PRESS_MS = 450;
   const MOVE_TOLERANCE_PX = 10;   // movimento que cancela o toque longo e inicia o arrasto
   const WALLPAPER_COUNT = 5;
   const WALLPAPER_FILES = ['00.jpg', '01.jpg', '02.jpg', '03.jpg', '04.jpg'];
   const SEARCH_APP_LIMIT = 5;
+  const DEFAULT_NAME = 'Utilizador';
+  const AVATARS = ['ic_avatar_00', 'ic_avatar_01'];
+  const BAR_DEFAULTS = { height: 56, icon: 30 };
+  const BAR_LIMITS = { height: [52, 84], icon: [20, 40] };
 
   // Ícones de marca usados só quando o sistema não devolve o ícone da app.
   const BRAND_ICONS = [
@@ -49,13 +54,14 @@
     'ic_app_vlc_media_player', 'ic_app_whatsapp',
   ];
 
-  // Ícones do menu de contexto, com o mesmo desenho do menu.html (usam currentColor).
+  // Ícones do menu de contexto (usam currentColor).
   const SVG = {
     pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>',
     image: '<svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M9,42q-1.2,0-2.1-0.9T6,39V9Q6,7.8 6.9,6.9T9,6H39q1.2,0 2.1,0.9T42,9V39q0,1.2-0.9,2.1T39,42H9Zm0-3H39V9H9V39Zm2.8-4.85H36.25l-7.35-9.8L22.3,32.9l-4.65-6.35l-5.85,7.6ZM9,39V9V39Zm9.78-20.23q0.72-0.73 0.72-1.77t-0.73-1.77T16.99,14.5t-1.77,0.73T14.5,17.01t0.73,1.77t1.77,0.73t1.77-0.73Z"/></svg>',
     minus: '<svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M10,25.5v-3H38v3H10Z"/></svg>',
     plus: '<svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M22.5,38V25.5H10v-3h12.5V10h3v12.5H38v3H25.5V38Z"/></svg>',
     arrange: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+    eyeOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="M2 2l20 20"/></svg>',
     trash: '<svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M13.05,42q-1.24,0-2.12-0.88T10.05,39V10.5H8v-3h9.4V6H30.6V7.5H40v3H37.95V39q0,1.2-0.9,2.1T34.95,42H13.05Zm21.9-31.5H13.05V39h21.9V10.5ZM18.35,34.7h3V14.75h-3V34.7Zm8.3,0h3V14.75h-3V34.7ZM13.05,10.5V39V10.5Z"/></svg>',
     info: '<svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M22.65,34h3V22h-3V34Zm2.52-16.16q0.48-0.46 0.48-1.14q0-0.72-0.47-1.21T24,15t-1.18,0.49T22.35,16.7q0,0.68 0.47,1.14T24,18.3t1.18-0.46ZM24.01,44q-4.14,0-7.78-1.58t-6.36-4.3t-4.3-6.37T4,23.98t1.58-7.78t4.3-6.34t6.37-4.28T24.03,4t7.78,1.57t6.34,4.28t4.28,6.35T44,23.99t-1.57,7.78t-4.28,6.35t-6.35,4.3T24.01,44Zm0.01-3q7.07,0 12.03-4.98T41,23.98T36.06,11.95T24,7q-7.05,0-12.02,4.94T7,24q0,7.05 4.98,12.02T24.03,41ZM24,24Z"/></svg>',
   };
@@ -63,7 +69,7 @@
   const $ = (id) => document.getElementById(id);
   const $$ = (selector, root) => Array.prototype.slice.call((root || document).querySelectorAll(selector));
   const pad2 = (n) => String(n).padStart(2, '0');
-  const isFocused = (el) => document.activeElement === el;
+  const isFocused = (node) => document.activeElement === node;
   const el = (tag, className, text) => {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -80,6 +86,11 @@
       return fallback;
     }
   };
+  const clampInt = (value, range, fallback) => {
+    const n = Math.round(Number(value));
+    if (value === null || value === undefined || value === '' || !Number.isFinite(n)) return fallback;
+    return Math.min(range[1], Math.max(range[0], n));
+  };
 
   const bridge = window.Desktop || createPreviewBridge();
 
@@ -87,13 +98,17 @@
     apps: [],
     byPackage: new Map(),
     pins: { desktop: [], dock: [] },
-    custom: {},          // { pacote: { name?: string, icon?: nomeDoRecurso } }
-    wallpaper: 0,
-    drag: null,          // { pkg, zone } enquanto um ícone afixado está a ser arrastado
-    arranging: false,    // modo "Organizar": ícones afixados podem ser reordenados
+    hidden: [],                                   // pacotes ocultos (somem do launcher todo)
+    custom: {},                                   // { pacote: { name?: string, icon?: nome } }
+    profile: { name: DEFAULT_NAME, avatar: AVATARS[0] },
+    wallpaper: 0,                                 // índice 0-4, ou 'custom'
+    bar: { height: BAR_DEFAULTS.height, icon: BAR_DEFAULTS.icon },
+    drag: null,                                   // { pkg, zone } enquanto um ícone afixado é arrastado
+    arranging: false,                             // modo "Organizar"
   };
   const iconCache = new Map();
   const suggest = { items: [] };
+  let customUri = '';                             // papel de parede do utilizador, em memória
   let openPanelId = null;
   let dialogOnOk = null;
   let longPressFired = false;   // o gesto que acabou de acontecer não deve contar como toque
@@ -134,31 +149,49 @@
       toggleMute: () => {},
       getBrightness: () => 50,
       setBrightness: () => {},
+      pickWallpaper: () => console.log('galeria'),
+      hasCustomWallpaper: () => false,
+      getCustomWallpaper: () => '',
     };
   }
 
   /* ---------- Estado persistente ---------- */
 
   function loadState() {
+    let saved = {};
     try {
-      const saved = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
-      const onlyStrings = (list) => Array.isArray(list) ? list.filter((s) => typeof s === 'string') : [];
-      state.pins.desktop = onlyStrings(saved.desktop);
-      state.pins.dock = onlyStrings(saved.dock);
+      saved = JSON.parse(localStorage.getItem(STORE_KEY) || localStorage.getItem(LEGACY_KEY) || '{}') || {};
+    } catch (e) {
+      saved = {};
+    }
+    const onlyStrings = (list) => Array.isArray(list) ? list.filter((s) => typeof s === 'string') : [];
 
-      const custom = saved.custom && typeof saved.custom === 'object' ? saved.custom : {};
-      Object.keys(custom).forEach((pkg) => {
-        const c = custom[pkg] || {};
-        const entry = {};
-        if (typeof c.name === 'string' && c.name.trim()) entry.name = c.name.trim().slice(0, 40);
-        if (typeof c.icon === 'string' && ICON_CHOICES.indexOf(c.icon) !== -1) entry.icon = c.icon;
-        if (Object.keys(entry).length) state.custom[pkg] = entry;
-      });
+    state.pins.desktop = onlyStrings(saved.desktop);
+    state.pins.dock = onlyStrings(saved.dock);
+    state.hidden = onlyStrings(saved.hidden);
 
+    const custom = saved.custom && typeof saved.custom === 'object' ? saved.custom : {};
+    Object.keys(custom).forEach((pkg) => {
+      const c = custom[pkg] || {};
+      const entry = {};
+      if (typeof c.name === 'string' && c.name.trim()) entry.name = c.name.trim().slice(0, 40);
+      if (typeof c.icon === 'string' && ICON_CHOICES.indexOf(c.icon) !== -1) entry.icon = c.icon;
+      if (Object.keys(entry).length) state.custom[pkg] = entry;
+    });
+
+    const profile = saved.profile && typeof saved.profile === 'object' ? saved.profile : {};
+    if (typeof profile.name === 'string' && profile.name.trim()) state.profile.name = profile.name.trim().slice(0, 24);
+    if (AVATARS.indexOf(profile.avatar) !== -1) state.profile.avatar = profile.avatar;
+
+    const bar = saved.bar && typeof saved.bar === 'object' ? saved.bar : {};
+    state.bar.height = clampInt(bar.height, BAR_LIMITS.height, BAR_DEFAULTS.height);
+    state.bar.icon = clampInt(bar.icon, BAR_LIMITS.icon, BAR_DEFAULTS.icon);
+
+    if (saved.wallpaper === 'custom') {
+      state.wallpaper = 'custom';
+    } else {
       const w = Number(saved.wallpaper);
       state.wallpaper = Number.isInteger(w) && w >= 0 && w < WALLPAPER_COUNT ? w : 0;
-    } catch (e) {
-      // dados corrompidos: começa com o estado por omissão
     }
   }
 
@@ -167,7 +200,10 @@
       localStorage.setItem(STORE_KEY, JSON.stringify({
         desktop: state.pins.desktop,
         dock: state.pins.dock,
+        hidden: state.hidden,
         custom: state.custom,
+        profile: state.profile,
+        bar: state.bar,
         wallpaper: state.wallpaper,
       }));
     } catch (e) { /* armazenamento indisponível */ }
@@ -239,7 +275,7 @@
     return appIcon(app);
   }
 
-  /* ---------- Aplicações e fixações ---------- */
+  /* ---------- Aplicações, fixações e ocultação ---------- */
 
   function loadApps() {
     let list = [];
@@ -250,11 +286,10 @@
       .sort((a, b) => a.name.localeCompare(b.name, 'pt', { sensitivity: 'base' }));
     state.byPackage = new Map(state.apps.map((a) => [a.packageName, a]));
     if (state.apps.length) pruneMissingPins();
-    renderDesktop();
-    renderDock();
+    refreshAll();
   }
 
-  /** Tira das fixações as apps que já não existem (ex.: desinstaladas). */
+  /** Tira das fixações e da lista de ocultas as apps que já não existem (ex.: desinstaladas). */
   function pruneMissingPins() {
     let changed = false;
     ['desktop', 'dock'].forEach((zone) => {
@@ -262,6 +297,9 @@
       state.pins[zone] = state.pins[zone].filter((pkg) => state.byPackage.has(pkg));
       if (state.pins[zone].length !== before) changed = true;
     });
+    const hiddenBefore = state.hidden.length;
+    state.hidden = state.hidden.filter((pkg) => state.byPackage.has(pkg));
+    if (state.hidden.length !== hiddenBefore) changed = true;
     if (changed) saveState();
   }
 
@@ -269,9 +307,19 @@
     return state.pins[zone].indexOf(pkg) !== -1;
   }
 
+  function isHidden(pkg) {
+    return state.hidden.indexOf(pkg) !== -1;
+  }
+
+  function visibleApps() {
+    return state.apps.filter((app) => !isHidden(app.packageName));
+  }
+
   function refreshAll() {
     renderDesktop();
     renderDock();
+    renderProfile();
+    renderSettings();
     if (openPanelId === 'apps') renderApps($('appSearch').value);
   }
 
@@ -280,6 +328,15 @@
     const index = list.indexOf(pkg);
     if (on && index === -1) list.push(pkg);
     if (!on && index !== -1) list.splice(index, 1);
+    saveState();
+    refreshAll();
+  }
+
+  /** Oculta ou mostra uma app em todo o launcher. As fixações ficam guardadas. */
+  function setHidden(pkg, on) {
+    const index = state.hidden.indexOf(pkg);
+    if (on && index === -1) state.hidden.push(pkg);
+    if (!on && index !== -1) state.hidden.splice(index, 1);
     saveState();
     refreshAll();
   }
@@ -398,8 +455,8 @@
   }
 
   function markDropZone(x, y) {
-    const el = document.elementFromPoint(x, y);
-    const zoneEl = el ? el.closest('#dock, #desktopIcons') : null;
+    const hit = document.elementFromPoint(x, y);
+    const zoneEl = hit ? hit.closest('#dock, #desktopIcons') : null;
     $$('.drop-target').forEach((n) => { if (n !== zoneEl) n.classList.remove('drop-target'); });
     if (zoneEl) zoneEl.classList.add('drop-target');
   }
@@ -453,14 +510,6 @@
       button.appendChild(label);
     }
 
-    if (opts.pinned) {
-      const badge = document.createElement('img');
-      badge.className = 'pin-badge';
-      badge.alt = '';
-      applyIcon(badge, featureIcon('ic_pin'));
-      button.appendChild(badge);
-    }
-
     button.addEventListener('click', (event) => {
       if (longPressFired) {
         longPressFired = false;
@@ -482,7 +531,7 @@
 
   /* ---------- Menu de contexto ---------- */
 
-  /** Itens do menu de uma aplicação, agrupados como no menu.html. */
+  /** Itens do menu de uma aplicação, agrupados. */
   function appMenu(app) {
     const pkg = app.packageName;
     const onDesktop = isPinned('desktop', pkg);
@@ -504,6 +553,9 @@
     if (onDesktop || onDock) {
       groups[1].push({ label: 'Organizar', icon: SVG.arrange, action: () => setArranging(true) });
     }
+    groups.push([
+      { label: 'Ocultar', icon: SVG.eyeOff, action: () => setHidden(pkg, true) },
+    ]);
     groups.push([
       { label: 'Desinstalar', icon: SVG.trash, danger: true, action: () => openUninstallDialog(app) },
     ]);
@@ -561,7 +613,7 @@
     return !$('ctxMenu').hidden;
   }
 
-  /* ---------- Diálogos: renomear, ícone e desinstalar ---------- */
+  /* ---------- Diálogos ---------- */
 
   function openDialog(opts) {
     $('dlgTitle').textContent = opts.title;
@@ -650,6 +702,67 @@
     });
   }
 
+  function openNameDialog() {
+    openDialog({
+      title: 'Nome de utilizador',
+      okLabel: 'Guardar',
+      render(body) {
+        const input = el('input', 'text-input');
+        input.id = 'dlgInput';
+        input.type = 'text';
+        input.maxLength = 24;
+        input.value = state.profile.name;
+        input.setAttribute('aria-label', 'Nome de utilizador');
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') $('dlgOk').click(); });
+        body.appendChild(input);
+        body.appendChild(el('p', null, 'Aparece no topo do painel de aplicações. Se o deixares vazio, volta a «' + DEFAULT_NAME + '».'));
+      },
+      onOk() {
+        const value = $('dlgInput').value.trim();
+        state.profile.name = value ? value.slice(0, 24) : DEFAULT_NAME;
+        saveState();
+        refreshAll();
+        return true;
+      },
+    });
+  }
+
+  function openAvatarDialog() {
+    let chosen = state.profile.avatar;
+    openDialog({
+      title: 'Editar avatar',
+      okLabel: 'Guardar',
+      render(body) {
+        body.appendChild(el('p', null, 'Escolhe o avatar do teu perfil.'));
+        const grid = el('div', 'avatar-grid');
+        grid.setAttribute('role', 'radiogroup');
+        AVATARS.forEach((name, index) => {
+          const button = el('button', 'avatar-choice');
+          button.type = 'button';
+          button.setAttribute('role', 'radio');
+          button.setAttribute('aria-label', 'Avatar ' + (index + 1));
+          button.setAttribute('aria-pressed', String(name === chosen));
+          const img = el('img');
+          img.alt = '';
+          applyIcon(img, featureIcon(name));
+          button.appendChild(img);
+          button.addEventListener('click', () => {
+            chosen = name;
+            $$('.avatar-choice', grid).forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+          });
+          grid.appendChild(button);
+        });
+        body.appendChild(grid);
+      },
+      onOk() {
+        state.profile.avatar = chosen;
+        saveState();
+        refreshAll();
+        return true;
+      },
+    });
+  }
+
   function openUninstallDialog(app) {
     openDialog({
       title: 'Desinstalar',
@@ -669,6 +782,15 @@
     });
   }
 
+  function openInfoDialog(title, text) {
+    openDialog({
+      title: title,
+      okLabel: 'OK',
+      render(body) { body.appendChild(el('p', null, text)); },
+      onOk() { return true; },
+    });
+  }
+
   /* ---------- Modo "Organizar" ---------- */
 
   function setArranging(on) {
@@ -679,7 +801,7 @@
     if (!on) clearDropMarks();
   }
 
-  /* ---------- Desktop e barra de tarefas ---------- */
+  /* ---------- Ambiente de trabalho e barra de tarefas ---------- */
 
   function renderDesktop() {
     const box = $('desktopIcons');
@@ -687,7 +809,7 @@
     let count = 0;
     state.pins.desktop.forEach((pkg) => {
       const app = state.byPackage.get(pkg);
-      if (!app) return;
+      if (!app || isHidden(pkg)) return;
       count++;
       box.appendChild(createTile({
         className: 'desk-tile', label: displayName(app), icon: displayIcon(app), showLabel: true,
@@ -704,7 +826,7 @@
     dock.innerHTML = '';
     state.pins.dock.forEach((pkg) => {
       const app = state.byPackage.get(pkg);
-      if (!app) return;
+      if (!app || isHidden(pkg)) return;
       dock.appendChild(createTile({
         className: 'dock-tile', label: displayName(app), icon: displayIcon(app),
         zone: 'dock', packageName: app.packageName,
@@ -714,17 +836,35 @@
     });
   }
 
-  /* ---------- Painel de aplicações ---------- */
+  function applyBarSize() {
+    const style = document.documentElement.style;
+    style.setProperty('--taskbar-h', state.bar.height + 'px');
+    style.setProperty('--dock-icon', state.bar.icon + 'px');
+  }
+
+  /* ---------- Cabeçalho do perfil e painel de aplicações ---------- */
+
+  function renderProfile() {
+    $('headerName').textContent = state.profile.name;
+    applyIcon($('headerAvatar'), featureIcon(state.profile.avatar));
+    const n = visibleApps().length;
+    $('headerCount').textContent = n + (n === 1 ? ' aplicação' : ' aplicações');
+  }
 
   function renderApps(filter) {
     const grid = $('appGrid');
     grid.innerHTML = '';
+    const apps = visibleApps();
     if (!state.apps.length) {
       grid.appendChild(emptyNode('Não foi possível carregar as aplicações.'));
       return;
     }
+    if (!apps.length) {
+      grid.appendChild(emptyNode('Todas as aplicações estão ocultas. Podes voltar a mostrá-las em Configurações.'));
+      return;
+    }
     const term = norm(filter).trim();
-    const matches = state.apps
+    const matches = apps
       .filter((a) => norm(displayName(a)).includes(term))
       .sort((a, b) => displayName(a).localeCompare(displayName(b), 'pt', { sensitivity: 'base' }));
     if (!matches.length) {
@@ -732,11 +872,8 @@
       return;
     }
     matches.forEach((app) => {
-      const onDesktop = isPinned('desktop', app.packageName);
-      const onDock = isPinned('dock', app.packageName);
       grid.appendChild(createTile({
         className: 'app-tile', label: displayName(app), icon: displayIcon(app), showLabel: true,
-        pinned: onDesktop || onDock,
         onActivate: () => launch(app),
         menu: () => appMenu(app),
       }));
@@ -747,32 +884,103 @@
     return el('div', 'empty', text);
   }
 
+  /* ---------- Configurações ---------- */
+
+  function renderSettings() {
+    $('settingsName').textContent = state.profile.name;
+    applyIcon($('settingsAvatar'), featureIcon(state.profile.avatar));
+    syncBarSliders();
+    renderHiddenList();
+  }
+
+  function syncBarSliders() {
+    const height = $('barHeightRange');
+    const icon = $('barIconRange');
+    if (!isFocused(height)) height.value = state.bar.height;
+    if (!isFocused(icon)) icon.value = state.bar.icon;
+    $('barHeightValue').textContent = state.bar.height + ' px';
+    $('barIconValue').textContent = state.bar.icon + ' px';
+  }
+
+  function renderHiddenList() {
+    const box = $('hiddenList');
+    box.innerHTML = '';
+    const hidden = state.apps.filter((app) => isHidden(app.packageName));
+    if (!hidden.length) {
+      box.appendChild(el('p', 'card-note', 'Não há aplicações ocultas. Mantém premida uma aplicação e escolhe «Ocultar».'));
+      return;
+    }
+    hidden.forEach((app) => {
+      const row = el('div', 'hidden-row');
+      const img = el('img');
+      img.alt = '';
+      applyIcon(img, displayIcon(app));
+      const name = el('span', 'hidden-name', displayName(app));
+      const show = el('button', 'pill-btn', 'Mostrar');
+      show.type = 'button';
+      show.addEventListener('click', () => setHidden(app.packageName, false));
+      row.append(img, name, show);
+      box.appendChild(row);
+    });
+  }
+
   /* ---------- Papel de parede ---------- */
 
-  function applyWallpaper(index) {
-    state.wallpaper = index;
+  function applyWallpaper(value) {
+    if (value === 'custom' && !customUri) value = 0;
+    state.wallpaper = value;
     saveState();
-    $('desktop').style.backgroundImage = "url('wallpapers/" + pad2(index) + ".jpg')";
+    $('desktop').style.backgroundImage = value === 'custom'
+      ? 'url("' + customUri + '")'
+      : "url('wallpapers/" + pad2(value) + ".jpg')";
     if (openPanelId === 'wallpaper') renderWallpapers();
   }
 
   function renderWallpapers() {
     const grid = $('wallpaperGrid');
     grid.innerHTML = '';
+
+    const options = [];
     for (let i = 0; i < WALLPAPER_COUNT; i++) {
+      options.push({ value: i, label: 'Papel de parede ' + (i + 1), src: 'wallpapers/' + WALLPAPER_FILES[i] });
+    }
+    if (customUri) options.push({ value: 'custom', label: 'Papel de parede da galeria', src: customUri });
+
+    options.forEach((opt) => {
       const option = document.createElement('button');
       option.type = 'button';
       option.className = 'wallpaper-option';
-      option.setAttribute('aria-label', 'Papel de parede ' + (i + 1));
-      option.setAttribute('aria-pressed', String(i === state.wallpaper));
+      option.setAttribute('aria-label', opt.label);
+      option.setAttribute('aria-pressed', String(opt.value === state.wallpaper));
       const img = document.createElement('img');
       img.alt = '';
-      img.src = 'wallpapers/' + WALLPAPER_FILES[i];
+      img.src = opt.src;
       option.appendChild(img);
-      option.addEventListener('click', () => applyWallpaper(i));
+      option.addEventListener('click', () => applyWallpaper(opt.value));
       grid.appendChild(option);
-    }
+    });
+
+    const add = el('button', 'wallpaper-option wallpaper-add');
+    add.type = 'button';
+    add.setAttribute('aria-label', 'Escolher imagem da galeria');
+    const plus = el('img');
+    plus.alt = '';
+    plus.dataset.icon = 'ic_add';
+    applyIcon(plus, featureIcon('ic_add'));
+    add.append(plus, el('span', null, 'Galeria'));
+    add.addEventListener('click', () => bridge.pickWallpaper());
+    grid.appendChild(add);
   }
+
+  // Chamado pelo Android depois de escolher uma imagem na galeria.
+  window.desktopWallpaperPicked = function (ok) {
+    if (!ok) {
+      openInfoDialog('Papel de parede', 'Não foi possível usar essa imagem. Experimenta outra.');
+      return;
+    }
+    customUri = safe(() => bridge.getCustomWallpaper(), '') || '';
+    if (customUri) applyWallpaper('custom');
+  };
 
   /* ---------- Notificações ---------- */
 
@@ -923,7 +1131,7 @@
     box.innerHTML = '';
     suggest.items = [];
 
-    state.apps
+    visibleApps()
       .filter((app) => norm(displayName(app)).includes(q))
       .slice(0, SEARCH_APP_LIMIT)
       .forEach((app) => suggest.items.push({
@@ -989,22 +1197,23 @@
     $('trayBtn').setAttribute('aria-expanded', String(openPanelId === 'notif'));
   }
 
+  function setTab(name) {
+    const apps = name === 'apps';
+    $('appsView').hidden = !apps;
+    $('launcherSettingsView').hidden = apps;
+    $('appsTabBtn').classList.toggle('active', apps);
+    $('settingsTabBtn').classList.toggle('active', !apps);
+    $('appsTabBtn').setAttribute('aria-selected', String(apps));
+    $('settingsTabBtn').setAttribute('aria-selected', String(!apps));
+  }
+
   function openSettingsTab() {
-    $('appsView').hidden = true;
-    $('launcherSettingsView').hidden = false;
-    $('appsTabBtn').classList.remove('active');
-    $('settingsTabBtn').classList.add('active');
-    $('appsTabBtn').setAttribute('aria-selected', 'false');
-    $('settingsTabBtn').setAttribute('aria-selected', 'true');
+    setTab('settings');
+    renderSettings();
   }
 
   function openAppsTab() {
-    $('appsView').hidden = false;
-    $('launcherSettingsView').hidden = true;
-    $('appsTabBtn').classList.add('active');
-    $('settingsTabBtn').classList.remove('active');
-    $('appsTabBtn').setAttribute('aria-selected', 'true');
-    $('settingsTabBtn').setAttribute('aria-selected', 'false');
+    setTab('apps');
     renderApps($('appSearch').value);
   }
 
@@ -1052,9 +1261,30 @@
     $('appSearch').addEventListener('input', (e) => renderApps(e.target.value));
     $('appsTabBtn').addEventListener('click', openAppsTab);
     $('settingsTabBtn').addEventListener('click', openSettingsTab);
-    $('launcherSettingsBtn').addEventListener('click', openSettingsTab);
+    $('profileChip').addEventListener('click', openSettingsTab);
+    $('avatarRow').addEventListener('click', openAvatarDialog);
+    $('nameRow').addEventListener('click', openNameDialog);
     $('androidSettingsBtn').addEventListener('click', () => bridge.openAndroidSettings());
     $$('[data-open-wallpaper]').forEach((btn) => btn.addEventListener('click', () => openPanel('wallpaper')));
+
+    $('barHeightRange').addEventListener('input', (e) => {
+      state.bar.height = clampInt(e.target.value, BAR_LIMITS.height, BAR_DEFAULTS.height);
+      applyBarSize();
+      $('barHeightValue').textContent = state.bar.height + ' px';
+    });
+    $('barHeightRange').addEventListener('change', saveState);
+    $('barIconRange').addEventListener('input', (e) => {
+      state.bar.icon = clampInt(e.target.value, BAR_LIMITS.icon, BAR_DEFAULTS.icon);
+      applyBarSize();
+      $('barIconValue').textContent = state.bar.icon + ' px';
+    });
+    $('barIconRange').addEventListener('change', saveState);
+    $('resetBarBtn').addEventListener('click', () => {
+      state.bar = { height: BAR_DEFAULTS.height, icon: BAR_DEFAULTS.icon };
+      applyBarSize();
+      saveState();
+      syncBarSliders();
+    });
 
     $('dockSearchForm').addEventListener('submit', submitSearch);
     $('dockSearch').addEventListener('input', renderSuggest);
@@ -1123,6 +1353,11 @@
 
   function boot() {
     loadState();
+    if (safe(() => bridge.hasCustomWallpaper() === true, false)) {
+      customUri = safe(() => bridge.getCustomWallpaper(), '') || '';
+    }
+    if (state.wallpaper === 'custom' && !customUri) state.wallpaper = 0;
+    applyBarSize();
     applyWallpaper(state.wallpaper);
     hydrateIcons(document);
     bindEvents();

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.content.pm.PackageManager;
@@ -22,11 +23,16 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.net.Uri;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -41,6 +47,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MainActivity extends Activity {
     private static final int ICON_PX = 96;
     private static final String ICON_NAME_PATTERN = "[a-z0-9_]+";
+    private static final int REQUEST_PICK_WALLPAPER = 1001;
+    private static final int WALLPAPER_MAX_PX = 1600;
+    private static final String CUSTOM_WALLPAPER_FILE = "wallpaper_custom.jpg";
 
     private WebView webView;
     /** Cache de ícones já convertidos para data URI. Chaves: "app:<pacote>" e "res:<nome>". */
@@ -98,6 +107,55 @@ public class MainActivity extends Activity {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) enterImmersiveMode();
+    }
+
+    /** Resultado do seletor de imagens para o papel de parede personalizado. */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQUEST_PICK_WALLPAPER) return;
+        boolean ok = resultCode == RESULT_OK && data != null && data.getData() != null
+                && saveWallpaperFrom(data.getData());
+        if (webView != null) {
+            webView.evaluateJavascript(
+                    "window.desktopWallpaperPicked && window.desktopWallpaperPicked(" + ok + ")", null);
+        }
+    }
+
+    /** Lê a imagem escolhida, reduz para um tamanho razoável e guarda-a no armazenamento interno. */
+    private boolean saveWallpaperFrom(Uri uri) {
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            try (InputStream in = getContentResolver().openInputStream(uri)) {
+                if (in == null) return false;
+                BitmapFactory.decodeStream(in, null, bounds);
+            }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return false;
+
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight, WALLPAPER_MAX_PX);
+            Bitmap bitmap;
+            try (InputStream in = getContentResolver().openInputStream(uri)) {
+                if (in == null) return false;
+                bitmap = BitmapFactory.decodeStream(in, null, opts);
+            }
+            if (bitmap == null) return false;
+            try (FileOutputStream out = new FileOutputStream(new File(getFilesDir(), CUSTOM_WALLPAPER_FILE))) {
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            } finally {
+                bitmap.recycle();
+            }
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static int sampleSizeFor(int width, int height, int maxPx) {
+        int size = 1;
+        while (width / (size * 2) >= maxPx && height / (size * 2) >= maxPx) size *= 2;
+        return size;
     }
 
     /** Num launcher, o botão Voltar só fecha painéis abertos (a página decide). */
@@ -413,6 +471,41 @@ public class MainActivity extends Activity {
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
             } catch (Exception ignored) { }
+        }
+
+        /** Abre o seletor de imagens do Android; o resultado chega em onActivityResult. */
+        @JavascriptInterface
+        public void pickWallpaper() {
+            runOnUiThread(() -> {
+                try {
+                    Intent pick = new Intent(Intent.ACTION_GET_CONTENT);
+                    pick.setType("image/*");
+                    pick.addCategory(Intent.CATEGORY_OPENABLE);
+                    startActivityForResult(Intent.createChooser(pick, "Escolher papel de parede"),
+                            REQUEST_PICK_WALLPAPER);
+                } catch (Exception ignored) { }
+            });
+        }
+
+        @JavascriptInterface
+        public boolean hasCustomWallpaper() {
+            return new File(getFilesDir(), CUSTOM_WALLPAPER_FILE).isFile();
+        }
+
+        /** Papel de parede personalizado como data URI JPEG, ou uma string vazia se não existir. */
+        @JavascriptInterface
+        public String getCustomWallpaper() {
+            File file = new File(getFilesDir(), CUSTOM_WALLPAPER_FILE);
+            if (!file.isFile()) return "";
+            try (FileInputStream in = new FileInputStream(file)) {
+                ByteArrayOutputStream out = new ByteArrayOutputStream((int) file.length());
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = in.read(buffer)) != -1) out.write(buffer, 0, read);
+                return "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+            } catch (Exception e) {
+                return "";
+            }
         }
 
         @JavascriptInterface
