@@ -66,3 +66,16 @@ definições próprias, e o utilizador tem de conceder o acesso manualmente.
 - A lista de apps só se atualiza quando se abre o painel de aplicações (ou ao arrancar).
 - Ainda não há reordenação de ícones por arrastar. A ordem é a ordem de afixação.
 - `targetSdk` está em 33 por causa do AGP 7.4.2. Para 34 ou superior é preciso AGP 8.x.
+
+
+## v0.3 — personalização e centro de ações
+- Corrigido o acesso aos assets locais da WebView para carregar wallpapers e imagens.
+- Fixar aplicações no desktop e na Dock através do menu de toque longo.
+- Arrastar aplicações já afixadas para a área de trabalho/Dock; a ordem é guardada no armazenamento local.
+- Perfil de utilizador e separador de configurações do launcher.
+- Pesquisa da Dock: abre a aplicação correspondente ou pesquisa no Google.
+- Controlos de volume, mute, brilho e atalhos Wi-Fi/Bluetooth/Localização.
+- Limpar notificações ativas.
+
+### Limitações impostas pelo Android
+Em Android 10 ou superior, aplicações normais já não podem ligar/desligar Wi-Fi diretamente; o launcher abre o painel oficial do sistema. Em Android 13 ou superior, o controlo direto do Bluetooth também é limitado e abre as definições. A localização abre as definições do sistema porque o Android não permite a um launcher comum alterar silenciosamente esse interruptor. O controlo de brilho pode pedir autorização especial "Modificar definições do sistema".

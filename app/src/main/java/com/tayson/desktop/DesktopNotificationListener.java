@@ -19,8 +19,29 @@ import java.util.List;
  */
 public class DesktopNotificationListener extends NotificationListenerService {
     private static final int MAX_ITEMS = 40;
+    public static volatile DesktopNotificationListener instance;
     private static final List<JSONObject> ITEMS =
             Collections.synchronizedList(new ArrayList<JSONObject>());
+
+    @Override
+    public void onListenerConnected() {
+        super.onListenerConnected();
+        instance = this;
+        try {
+            StatusBarNotification[] active = getActiveNotifications();
+            if (active != null) for (StatusBarNotification item : active) onNotificationPosted(item);
+        } catch (Exception ignored) { }
+    }
+
+    @Override
+    public void onDestroy() {
+        instance = null;
+        super.onDestroy();
+    }
+
+    public static void clearStoredNotifications() {
+        synchronized (ITEMS) { ITEMS.clear(); }
+    }
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {

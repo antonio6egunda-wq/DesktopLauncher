@@ -7,9 +7,14 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.content.pm.PackageManager;
+import android.media.AudioManager;
+import android.net.wifi.WifiManager;
+import android.bluetooth.BluetoothAdapter;
+import android.provider.Settings;
+import android.content.Context;
+import android.os.Build;
 import android.content.pm.ResolveInfo;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Base64;
 import android.view.View;
 import android.webkit.JavascriptInterface;
@@ -56,7 +61,7 @@ public class MainActivity extends Activity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccess(false);
+        settings.setAllowFileAccess(true); // Apenas assets locais; não carregar conteúdo remoto nesta WebView.
         settings.setAllowContentAccess(false);
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
@@ -216,8 +221,153 @@ public class MainActivity extends Activity {
         public boolean hasNotificationAccess() {
             ComponentName listener = new ComponentName(MainActivity.this, DesktopNotificationListener.class);
             String enabled = Settings.Secure.getString(
-                      getContentResolver(), "enabled_notification_listeners");
+                    getContentResolver(), Settings.Secure.ENABLED_NOTIFICATION_LISTENERS);
             return enabled != null && enabled.contains(listener.flattenToString());
+        }
+
+        @JavascriptInterface
+        public void clearNotifications() {
+            try {
+                if (DesktopNotificationListener.instance != null) {
+                    DesktopNotificationListener.instance.cancelAllNotifications();
+                }
+                DesktopNotificationListener.clearStoredNotifications();
+            } catch (Exception ignored) { }
+        }
+
+        @JavascriptInterface
+        public int getVolume() {
+            AudioManager audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            int max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+            return max == 0 ? 0 : Math.round(audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100f / max);
+        }
+
+        @JavascriptInterface
+        public void setVolume(int percent) {
+            AudioManager audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            int max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+            int value = Math.max(0, Math.min(100, percent));
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, Math.round(max * value / 100f), 0);
+        }
+
+        @JavascriptInterface
+        public void toggleMute() {
+            AudioManager audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            int current = audio.getStreamVolume(AudioManager.STREAM_MUSIC);
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC,
+                    current == 0 ? Math.max(1, audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC) / 2) : 0, 0);
+        }
+
+        @JavascriptInterface
+        public boolean isWifiEnabled() {
+            try {
+                WifiManager wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                return wifi != null && wifi.isWifiEnabled();
+            } catch (Exception e) { return false; }
+        }
+
+        @JavascriptInterface
+        public boolean toggleWifi() {
+            try {
+                if (Build.VERSION.SDK_INT < 29) {
+                    WifiManager wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                    return wifi != null && wifi.setWifiEnabled(!wifi.isWifiEnabled());
+                }
+            } catch (Exception ignored) { }
+            openWifiSettings();
+            return false;
+        }
+
+        @JavascriptInterface
+        public boolean isBluetoothEnabled() {
+            try {
+                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+                return adapter != null && adapter.isEnabled();
+            } catch (Exception e) { return false; }
+        }
+
+        @JavascriptInterface
+        public boolean toggleBluetooth() {
+            try {
+                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+                if (adapter != null && Build.VERSION.SDK_INT < 33) {
+                    return adapter.isEnabled() ? adapter.disable() : adapter.enable();
+                }
+            } catch (Exception ignored) { }
+            openBluetoothSettings();
+            return false;
+        }
+
+        @JavascriptInterface
+        public void openWifiSettings() {
+            try {
+                if (Build.VERSION.SDK_INT >= 29) {
+                    startActivity(new Intent(Settings.Panel.ACTION_WIFI));
+                } else {
+                    startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
+                }
+            } catch (Exception e) {
+                try { startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS)); } catch (Exception ignored) { }
+            }
+        }
+
+        @JavascriptInterface
+        public void openBluetoothSettings() {
+            try { startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS)); }
+            catch (Exception ignored) { }
+        }
+
+        @JavascriptInterface
+        public void openLocationSettings() {
+            try { startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)); }
+            catch (Exception ignored) { }
+        }
+
+        @JavascriptInterface
+        public int getBrightness() {
+            try {
+                return Math.round(Settings.System.getInt(getContentResolver(),
+                        Settings.System.SCREEN_BRIGHTNESS) * 100f / 255f);
+            } catch (Exception e) { return 50; }
+        }
+
+        @JavascriptInterface
+        public boolean canWriteSettings() {
+            return Build.VERSION.SDK_INT < 23 || Settings.System.canWrite(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public void requestBrightnessPermission() {
+            if (Build.VERSION.SDK_INT >= 23 && !Settings.System.canWrite(MainActivity.this)) {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                            android.net.Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                } catch (Exception ignored) { }
+            }
+        }
+
+        @JavascriptInterface
+        public void setBrightness(int percent) {
+            int value = Math.max(1, Math.min(100, percent));
+            if (Build.VERSION.SDK_INT >= 23 && !Settings.System.canWrite(MainActivity.this)) {
+                requestBrightnessPermission();
+                return;
+            }
+            try {
+                Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS,
+                        Math.round(value * 255f / 100f));
+            } catch (Exception ignored) { }
+        }
+
+        @JavascriptInterface
+        public void openGoogleSearch(String query) {
+            try {
+                String q = query == null ? "" : query.trim();
+                Intent intent = new Intent(Intent.ACTION_VIEW,
+                        android.net.Uri.parse("https://www.google.com/search?q=" + android.net.Uri.encode(q)));
+                startActivity(intent);
+            } catch (Exception ignored) { }
         }
 
         @JavascriptInterface

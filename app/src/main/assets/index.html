@@ -22,9 +22,26 @@
           <img data-icon="ic_close" alt="">
         </button>
       </header>
-      <label class="sr-only" for="appSearch">Pesquisar aplicações</label>
-      <input id="appSearch" class="search" type="search" placeholder="Pesquisar aplicações…" autocomplete="off">
-      <div id="appGrid" class="app-grid"></div>
+      <div class="user-card">
+        <div class="user-avatar">T</div>
+        <div class="user-meta"><strong>Utilizador</strong><small>Desktop Launcher</small></div>
+        <button id="launcherSettingsBtn" class="subtle-btn" type="button">⚙ Configurar</button>
+      </div>
+      <div class="apps-tabs">
+        <button id="appsTabBtn" class="tab-btn active" type="button">Aplicações</button>
+        <button id="settingsTabBtn" class="tab-btn" type="button">Configurações</button>
+      </div>
+      <div id="appsView">
+        <label class="sr-only" for="appSearch">Pesquisar aplicações</label>
+        <input id="appSearch" class="search" type="search" placeholder="Pesquisar aplicações…" autocomplete="off">
+        <div id="appGrid" class="app-grid"></div>
+      </div>
+      <div id="launcherSettingsView" class="launcher-settings" hidden>
+        <h3>Personalização</h3>
+        <button class="setting-row" type="button" data-open-wallpaper>Alterar papel de parede <span>›</span></button>
+        <p class="settings-note">Mantém premida uma aplicação para a afixar ou remover. Arrasta os ícones para organizar a área de trabalho e a Dock.</p>
+        <button class="setting-row" type="button" id="androidSettingsBtn">Definições do Android <span>›</span></button>
+      </div>
     </section>
 
     <section id="panelNotif" class="panel panel-right" role="dialog" aria-labelledby="titleNotif" hidden>
@@ -37,6 +54,14 @@
           <img data-icon="ic_close" alt="">
         </button>
       </header>
+      <div class="quick-settings">
+        <button class="quick-toggle" id="wifiToggle" type="button">◉ Wi-Fi</button>
+        <button class="quick-toggle" id="bluetoothToggle" type="button">ᛒ Bluetooth</button>
+        <button class="quick-toggle" id="locationToggle" type="button">⌖ Localização</button>
+      </div>
+      <div class="range-row"><label for="volumeRange">Volume</label><input id="volumeRange" type="range" min="0" max="100" value="50"><button id="muteBtn" class="mini-btn" type="button">Mute</button></div>
+      <div class="range-row"><label for="brightnessRange">Brilho</label><input id="brightnessRange" type="range" min="1" max="100" value="50"></div>
+      <div class="notification-heading"><strong>Notificações</strong><button id="clearNotificationsBtn" class="text-btn" type="button">Limpar tudo</button></div>
       <div id="notificationList" class="notification-list" aria-live="polite"></div>
       <button id="notifPermission" class="primary-btn" type="button" hidden>Ativar acesso às notificações</button>
     </section>
@@ -62,8 +87,13 @@
       </button>
 
       <div id="dock" class="dock" role="toolbar" aria-label="Barra de tarefas"></div>
+      <form id="dockSearchForm" class="dock-search-form">
+        <input id="dockSearch" type="search" placeholder="Pesquisar na Web ou aplicações" autocomplete="off">
+        <button type="submit" aria-label="Pesquisar">⌕</button>
+      </form>
 
       <div class="taskbar-end">
+        <button id="volumeBtn" class="dock-btn volume-btn" type="button" aria-label="Volume">◖</button>
         <button id="trayBtn" class="dock-btn tray-btn" type="button" aria-label="Notificações" aria-expanded="false">
           <img data-icon="ic_notifications" alt="">
           <span id="notificationDot" class="notification-dot" hidden></span>

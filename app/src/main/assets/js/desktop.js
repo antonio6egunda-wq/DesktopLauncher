@@ -7,6 +7,7 @@
   const STORE_KEY = 'desktop-launcher.v2';
   const LONG_PRESS_MS = 450;
   const WALLPAPER_COUNT = 5;
+  const WALLPAPER_FILES = ['00.jpg','01.jpg','02.jpg','03.jpg','04.jpg'];
 
   // Ícones de marca usados só quando o sistema não devolve o ícone da app.
   const BRAND_ICONS = [
@@ -169,6 +170,19 @@
     if (openPanelId === 'apps') renderApps($('appSearch').value);
   }
 
+  function movePinned(zone, pkg, beforePkg) {
+    const list = state.pins[zone];
+    const oldIndex = list.indexOf(pkg);
+    if (oldIndex !== -1) list.splice(oldIndex, 1);
+    let newIndex = beforePkg ? list.indexOf(beforePkg) : -1;
+    if (newIndex < 0) list.push(pkg);
+    else list.splice(newIndex, 0, pkg);
+    saveState();
+    renderDesktop();
+    renderDock();
+    if (openPanelId === 'apps') renderApps($('appSearch').value);
+  }
+
   function launch(app) {
     closePanels();
     bridge.openApp(app.packageName);
@@ -231,6 +245,21 @@
     });
 
     if (opts.menu) attachLongPress(button, () => openContextMenu(opts.menu(), button));
+    if (opts.packageName && opts.zone) {
+      button.dataset.packageName = opts.packageName;
+      button.dataset.zone = opts.zone;
+      button.draggable = true;
+      button.addEventListener('dragstart', (e) => {
+        state.dragPackage = opts.packageName;
+        e.dataTransfer.setData('text/plain', opts.packageName);
+        e.dataTransfer.effectAllowed = 'move';
+        button.classList.add('dragging');
+      });
+      button.addEventListener('dragend', () => {
+        button.classList.remove('dragging');
+        $$('.drop-target').forEach(el => el.classList.remove('drop-target'));
+      });
+    }
     return button;
   }
 
@@ -343,7 +372,7 @@
       const onDesktop = isPinned('desktop', app.packageName);
       const onDock = isPinned('dock', app.packageName);
       grid.appendChild(createTile({
-        className: 'app-tile', label: app.name, icon: appIcon(app), showLabel: true,
+        className: 'app-tile', label: app.name, icon: appIcon(app), showLabel: true, packageName: app.packageName, zone: 'apps',
         pinned: onDesktop || onDock,
         onActivate: () => launch(app),
         menu: () => [
@@ -388,7 +417,7 @@
       option.setAttribute('aria-pressed', String(i === state.wallpaper));
       const img = document.createElement('img');
       img.alt = '';
-      img.src = 'wallpapers/' + pad2(i) + '.jpg';
+      img.src = 'wallpapers/' + WALLPAPER_FILES[i];
       option.appendChild(img);
       option.addEventListener('click', () => applyWallpaper(i));
       grid.appendChild(option);
@@ -439,6 +468,59 @@
     if (openPanelId === 'notif') renderNotificationList(items);
   }
 
+  /* ---------- Pesquisa, controlos rápidos e definições ---------- */
+
+  function openSettingsTab() {
+    $('appsView').hidden = true;
+    $('launcherSettingsView').hidden = false;
+    $('appsTabBtn').classList.remove('active');
+    $('settingsTabBtn').classList.add('active');
+  }
+
+  function openAppsTab() {
+    $('appsView').hidden = false;
+    $('launcherSettingsView').hidden = true;
+    $('appsTabBtn').classList.add('active');
+    $('settingsTabBtn').classList.remove('active');
+    renderApps($('appSearch').value);
+  }
+
+  function refreshQuickSettings() {
+    try {
+      $('wifiToggle').classList.toggle('active', bridge.isWifiEnabled() === true);
+      $('bluetoothToggle').classList.toggle('active', bridge.isBluetoothEnabled() === true);
+      $('volumeRange').value = bridge.getVolume();
+      $('brightnessRange').value = bridge.getBrightness();
+    } catch (e) { }
+  }
+
+  function bindDropTarget(element, zone) {
+    element.addEventListener('dragover', (e) => {
+      if (!state.dragPackage) return;
+      e.preventDefault();
+      element.classList.add('drop-target');
+    });
+    element.addEventListener('dragleave', () => element.classList.remove('drop-target'));
+    element.addEventListener('drop', (e) => {
+      e.preventDefault();
+      element.classList.remove('drop-target');
+      const pkg = e.dataTransfer.getData('text/plain') || state.dragPackage;
+      const targetTile = e.target.closest('[data-package-name]');
+      const beforePkg = targetTile && targetTile.dataset.packageName !== pkg
+        ? targetTile.dataset.packageName : null;
+      if (pkg) movePinned(zone, pkg, beforePkg);
+      state.dragPackage = null;
+    });
+  }
+
+  function searchDock(query) {
+    const value = (query || '').trim();
+    if (!value) return;
+    const match = state.apps.find(a => a.name.toLowerCase().includes(value.toLowerCase()));
+    if (match) launch(match);
+    else bridge.openGoogleSearch(value);
+  }
+
   /* ---------- Painéis ---------- */
 
   function updateExpandedState() {
@@ -486,6 +568,22 @@
     $('trayBtn').addEventListener('click', () => togglePanel('notif'));
     $('notifPermission').addEventListener('click', () => bridge.openNotificationAccess());
     $('appSearch').addEventListener('input', (e) => renderApps(e.target.value));
+    $('appsTabBtn').addEventListener('click', openAppsTab);
+    $('settingsTabBtn').addEventListener('click', openSettingsTab);
+    $('launcherSettingsBtn').addEventListener('click', openSettingsTab);
+    $('androidSettingsBtn').addEventListener('click', () => bridge.openAndroidSettings());
+    $$('[data-open-wallpaper]').forEach(btn => btn.addEventListener('click', () => openPanel('wallpaper')));
+    $('dockSearchForm').addEventListener('submit', (e) => { e.preventDefault(); searchDock($('dockSearch').value); });
+    $('volumeBtn').addEventListener('click', () => { bridge.toggleMute(); refreshQuickSettings(); });
+    $('muteBtn').addEventListener('click', () => { bridge.toggleMute(); refreshQuickSettings(); });
+    $('volumeRange').addEventListener('input', (e) => bridge.setVolume(Number(e.target.value)));
+    $('brightnessRange').addEventListener('change', (e) => bridge.setBrightness(Number(e.target.value)));
+    $('wifiToggle').addEventListener('click', () => { bridge.toggleWifi(); setTimeout(refreshQuickSettings, 700); });
+    $('bluetoothToggle').addEventListener('click', () => { bridge.toggleBluetooth(); setTimeout(refreshQuickSettings, 700); });
+    $('locationToggle').addEventListener('click', () => bridge.openLocationSettings());
+    $('clearNotificationsBtn').addEventListener('click', () => { bridge.clearNotifications(); refreshNotifications(); });
+    bindDropTarget($('desktopIcons'), 'desktop');
+    bindDropTarget($('dock'), 'dock');
     $$('[data-close]').forEach((button) => button.addEventListener('click', closePanels));
 
     document.addEventListener('keydown', (e) => {
@@ -522,6 +620,7 @@
     loadApps();
     refreshNotifications();
     setInterval(refreshNotifications, 6000);
+    setInterval(refreshQuickSettings, 12000);
   }
 
   boot();
