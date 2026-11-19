@@ -12,10 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-repositories {
-    maven { url 'https://googleapis.com' }
-    google()
-    mavenCentral()
-}
 rootProject.name = 'DesktopLauncher'
 include ':app'

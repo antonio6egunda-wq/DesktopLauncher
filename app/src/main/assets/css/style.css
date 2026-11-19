@@ -198,8 +198,7 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   z-index: 10;
   height: var(--taskbar-h);
   display: grid;
-  /* Pesquisa e apps ficam juntas ao centro (os dois espaços laterais têm o mesmo tamanho). */
-  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, auto) minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px;
   padding: 0 8px;
@@ -211,9 +210,9 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 
 .taskbar-left    { grid-column: 1; display: flex; justify-content: flex-start; min-width: 0; }
 .taskbar-center  { grid-column: 3; position: relative; display: flex; justify-content: center; }
-.taskbar-dock    { grid-column: 4; min-width: 0; height: 100%; display: flex; align-items: center; margin-left: 6px; }
+.taskbar-dock    { grid-column: 4; min-width: 0; height: 100%; display: flex; align-items: center; }
 .taskbar-tray {
-  grid-column: 6;
+  grid-column: 5;
   height: calc(var(--taskbar-h) - 16px);
   display: flex;
   align-items: center;
@@ -253,9 +252,8 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 
 /* Apps fixadas: alinhadas à direita; se não couberem, deslizam. */
 .dock {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-width: 0;
-  max-width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
@@ -266,6 +264,8 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   border-radius: var(--radius-md);
 }
 .dock::-webkit-scrollbar { display: none; }
+/* Espaço flexível à esquerda: empurra as apps para a direita enquanto couberem. */
+.dock::before { content: ""; flex: 1 0 0; min-width: 0; }
 
 .dock-tile {
   flex: 0 0 auto;
