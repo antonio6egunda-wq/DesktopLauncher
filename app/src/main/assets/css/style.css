@@ -74,6 +74,21 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   gap: 4px;
 }
 
+.desk-hint {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  width: min(300px, 80%);
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
 .desk-tile,
 .app-tile,
 .dock-tile {
@@ -97,7 +112,7 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   outline: 0;
 }
 
-/* Ícones afixados podem ser arrastados: o gesto não pode ser roubado pelo scroll. */
+/* Ícones afixados: o gesto de arrasto só existe no modo "Organizar". */
 .pinned-tile { touch-action: none; }
 
 .desk-tile {
@@ -141,9 +156,37 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   background: rgba(16, 24, 32, 0.85);
 }
 
+/* Modo "Organizar": os ícones afixados ganham contorno e podem ser arrastados. */
+.arranging .pinned-tile {
+  border-color: rgba(255, 255, 255, 0.35);
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.06);
+}
+.arranging .desk-tile:active,
+.arranging .dock-tile:active { background: rgba(255, 255, 255, 0.06); }
+
+.arrange-bar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 16px;
+  max-width: calc(100% - 20px);
+  background: var(--surface);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+  animation: panel-in var(--t-panel) var(--ease);
+}
+
 /* Durante o arrasto: o ícone segue o dedo e o destino fica destacado. */
 .dragging {
-  opacity: 0.8;
+  opacity: 0.85;
   z-index: 5;
   pointer-events: none;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -154,7 +197,8 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   outline-offset: 2px;
 }
 
-/* ---------- Barra de tarefas (dock) ---------- */
+/* ---------- Barra de tarefas ----------
+ * Três colunas: [Iniciar] [pesquisa centrada] [apps fixadas + controlos à direita]. */
 
 .taskbar {
   position: absolute;
@@ -163,7 +207,8 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   bottom: 0;
   z-index: 10;
   height: var(--taskbar-h);
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 6px;
   padding: 0 8px;
@@ -171,6 +216,25 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   border-top: 1px solid var(--stroke);
+}
+
+.taskbar-left {
+  display: flex;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.taskbar-center {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.taskbar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
 }
 
 .dock-btn {
@@ -200,17 +264,9 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 
 .start-btn img { width: 24px; height: 24px; }
 
-/* Zona central: ocupa o espaço que sobra entre o botão Iniciar e os controlos. */
-.dock-zone {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
+/* Apps fixadas: alinhadas à direita; se não couberem, deslizam. */
 .dock {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -221,6 +277,8 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   border-radius: var(--radius-md);
 }
 .dock::-webkit-scrollbar { display: none; }
+/* Espaço flexível à esquerda: empurra as apps para a direita enquanto couberem. */
+.dock::before { content: ""; flex: 1 0 0; min-width: 0; }
 
 .dock-tile {
   flex: 0 0 auto;
@@ -262,10 +320,11 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 }
 .clock small { font-size: 10px; color: var(--muted); }
 
-/* Pesquisa da dock: ícone com campo de texto, expande ao focar. */
+/* Campo de pesquisa centrado na barra. */
 .dock-search-form {
-  flex: 0 1 200px;
-  min-width: 140px;
+  flex: 0 1 260px;
+  width: 260px;
+  min-width: 0;
   height: 36px;
   display: flex;
   align-items: center;
@@ -273,7 +332,11 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.10);
   overflow: hidden;
-  transition: flex-basis var(--t-panel) var(--ease);
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.dock-search-form:focus-within {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.14);
 }
 .dock-search-form input {
   flex: 1 1 auto;
@@ -283,36 +346,83 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   background: transparent;
   border: 0;
   outline: 0;
-  padding: 0 10px;
-  font-size: 12px;
+  padding: 0 4px 0 14px;
+  font-size: 13px;
   -webkit-user-select: text;
   user-select: text;
 }
 .dock-search-form input::placeholder { color: var(--muted); }
 .dock-search-form button {
-  flex: 0 0 34px;
+  flex: 0 0 38px;
   height: 100%;
   display: grid;
   place-items: center;
 }
 .dock-search-form button img { width: 18px; height: 18px; }
 
-/* Ecrãs largos (tablet ou modo paisagem): dock centrado na barra. */
-@media (min-width: 700px) {
-  .dock { justify-content: center; overflow: visible; }
+/* Lista de sugestões: aparece acima da barra ao escrever. */
+.search-suggest {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: min(360px, calc(100vw - 16px));
+  max-height: min(340px, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface-raised);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  animation: panel-in var(--t-fast) var(--ease);
 }
 
-/* Ecrãs estreitos: a pesquisa fica reduzida a um ícone e só se expande ao toque. */
+.suggest-item {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+.suggest-item:hover,
+.suggest-item:focus-visible,
+.suggest-item:active { background: var(--hover); outline: 0; }
+.suggest-item > img { width: 26px; height: 26px; object-fit: contain; }
+.suggest-text { display: flex; flex-direction: column; min-width: 0; }
+.suggest-text strong {
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.suggest-text small { font-size: 11px; color: var(--muted); }
+
+/* Ecrãs largos: a pesquisa mantém-se confortável e as apps têm mais espaço. */
+@media (min-width: 900px) {
+  .dock-search-form { width: 320px; flex-basis: 320px; }
+}
+
+/* Ecrãs estreitos: menos elementos na barra para caberem as apps fixadas. */
 @media (max-width: 520px) {
   .taskbar { padding: 0 6px; gap: 4px; }
-  .dock-zone { gap: 4px; }
-  .dock-search-form { flex: 0 0 36px; min-width: 36px; }
+  .dock-search-form { width: 36px; flex-basis: 36px; border-color: transparent; background: transparent; }
   .dock-search-form input { width: 0; padding: 0; }
-  .dock-search-form:focus-within { flex-basis: 170px; min-width: 170px; }
-  .dock-search-form:focus-within input { width: auto; padding: 0 8px; }
+  .dock-search-form:focus-within { width: min(220px, 60vw); flex-basis: min(220px, 60vw); border-color: var(--stroke); background: rgba(255, 255, 255, 0.10); }
+  .dock-search-form:focus-within input { width: auto; padding: 0 4px 0 12px; }
+  .volume-btn { display: none; }
   .clock { min-width: 48px; }
   .clock small { display: none; }
   .start-btn, .dock-btn { min-width: 40px; }
+  .dock-tile { width: 42px; height: 42px; }
 }
 
 /* ---------- Painéis ---------- */
@@ -492,7 +602,6 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-.launcher-settings h3 { font-size: 14px; margin: 4px 0 10px; }
 
 .setting-row {
   flex: 0 0 auto;
@@ -513,51 +622,89 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 
 /* ---------- Centro de notificações ---------- */
 
+/* Botões de estado: azul sólido só quando ligados (aria-pressed="true"). */
 .quick-settings {
   flex: 0 0 auto;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 7px;
+  gap: 8px;
 }
-.quick-toggle {
-  min-height: 52px;
+.qs-tile {
+  min-height: 84px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
+  gap: 8px;
+  padding: 10px 6px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.07);
   border: 1px solid var(--stroke);
-  font-size: 11px;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
-.quick-toggle img { width: 20px; height: 20px; }
-.quick-toggle.active {
-  background: var(--accent-soft);
-  border-color: rgba(22, 135, 232, 0.55);
+.qs-tile:active { background: var(--pressed); }
+.qs-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  transition: background var(--t-fast) var(--ease);
 }
+.qs-icon img { width: 20px; height: 20px; }
+.qs-text { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.2; }
+.qs-text strong { font-size: 12px; font-weight: 600; }
+.qs-text small { font-size: 10px; color: var(--muted); }
 
-.range-row {
+.qs-tile[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: transparent;
+}
+.qs-tile[aria-pressed="true"] .qs-icon { background: rgba(255, 255, 255, 0.22); }
+.qs-tile[aria-pressed="true"] .qs-text small { color: rgba(255, 255, 255, 0.85); }
+
+/* Volume e brilho num cartão próprio, com ícone em círculo. */
+.sliders {
   flex: 0 0 auto;
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--stroke);
+}
+.slider-row {
+  display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 12px;
+}
+.slider-icon {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+}
+.slider-icon:active { background: var(--pressed); }
+.slider-icon img { width: 18px; height: 18px; }
+.slider-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.slider-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   font-size: 12px;
 }
-.range-row > img { width: 18px; height: 18px; opacity: 0.8; }
-.range-row label { width: 56px; color: var(--muted); flex: 0 0 56px; }
-.range-row input { flex: 1; min-width: 0; accent-color: var(--accent); }
-.mini-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  padding: 7px 9px;
-  background: rgba(255, 255, 255, 0.09);
-  border-radius: 6px;
-  white-space: nowrap;
+.slider-head label { color: var(--text); }
+.slider-head output { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.slider-body input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--accent);
 }
-.mini-btn img { width: 14px; height: 14px; }
 
 .notification-heading {
   flex: 0 0 auto;
@@ -582,6 +729,7 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 }
 
 .notification-card {
+  position: relative;
   padding: 12px;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.07);
@@ -597,7 +745,6 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   font-size: 11px;
   color: var(--muted);
 }
-.notification-card { position: relative; }
 .notif-dismiss {
   position: absolute;
   top: 6px;
@@ -669,39 +816,166 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   object-fit: cover;
 }
 
-/* ---------- Menu de contexto (toque longo) ---------- */
+/* ---------- Menu de contexto (toque longo) ----------
+ * Mesmo desenho do menu.html: cartão escuro, itens com ícone e separadores. */
 
 .context-menu {
   position: fixed;
   z-index: 50;
-  min-width: 230px;
+  width: 240px;
   max-width: calc(100% - 16px);
-  padding: 6px;
+  max-height: calc(100% - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 0;
   display: flex;
   flex-direction: column;
-  background: var(--surface-raised);
+  gap: 10px;
+  background-color: rgba(36, 40, 50, 1);
+  background-image: linear-gradient(139deg, rgba(36, 40, 50, 1) 0%, rgba(36, 40, 50, 1) 0%, rgba(37, 28, 40, 1) 100%);
   border: 1px solid var(--stroke);
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
   animation: panel-in 140ms var(--ease);
 }
 
-.ctx-item {
-  min-height: 46px;
-  padding: 0 14px;
-  text-align: left;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
+.ctx-separator { border-top: 1.5px solid #42434a; }
+
+.ctx-group {
+  list-style: none;
+  margin: 0;
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.ctx-item:active,
-.ctx-item:focus-visible { background: var(--hover); outline: 0; }
+
+.ctx-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: #7e8590;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  transition: all 0.3s ease-out;
+}
+.ctx-item svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+  transition: all 0.3s ease-out;
+}
+.ctx-item:hover,
+.ctx-item:focus-visible {
+  background: #5353ff;
+  color: #ffffff;
+  transform: translate(1px, -1px);
+  outline: 0;
+}
+.ctx-item:active { transform: scale(0.99); }
+.ctx-item.danger:hover { background: #8e2a2a; }
+.ctx-item.accent { color: #bd89ff; }
+.ctx-item.accent:hover { background: rgba(56, 45, 71, 0.836); color: #bd89ff; }
+
+/* ---------- Diálogos (renomear, ícone, desinstalar) ---------- */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.dialog {
+  width: min(380px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  background: var(--surface-raised);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+  animation: panel-in var(--t-panel) var(--ease);
+}
+.dialog h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.dialog-body { display: flex; flex-direction: column; gap: 10px; }
+.dialog-body p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.dialog-body strong { color: var(--text); font-weight: 600; }
+
+.text-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.text-input:focus { border-color: var(--accent); }
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dlg-btn {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.dlg-btn:active { background: var(--pressed); }
+.dlg-btn.primary { background: var(--accent); color: #ffffff; }
+.dlg-btn.primary:active { background: #0f6fc4; }
+.dlg-btn.danger { background: #8e2a2a; color: #ffffff; }
+.dlg-btn.danger:active { background: #6e1f1f; }
+
+/* Grelha de escolha de ícones. */
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+}
+.icon-choice {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.06);
+}
+.icon-choice:active { background: var(--pressed); }
+.icon-choice img { width: 36px; height: 36px; object-fit: contain; }
+.icon-choice.original { font-size: 11px; color: var(--muted); }
+.icon-choice[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
 
 /* ---------- Pequenos ecrãs ---------- */
 
 @media (max-width: 520px) {
   .panel { padding: 12px; }
-  .quick-toggle { font-size: 10px; min-height: 48px; }
-  .range-row label { width: 48px; flex-basis: 48px; }
+  .context-menu { width: 230px; }
 }
 
 /* ---------- Movimento reduzido ---------- */

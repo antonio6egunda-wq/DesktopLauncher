@@ -11,6 +11,12 @@
   <main id="desktop" class="desktop">
 
     <nav id="desktopIcons" class="desktop-icons" aria-label="Ambiente de trabalho"></nav>
+    <p id="deskHint" class="desk-hint" hidden>Mantém premida uma aplicação para a editar ou afixar aqui.</p>
+
+    <div id="arrangeBar" class="arrange-bar" hidden>
+      <span>Arrasta os ícones para os reordenar</span>
+      <button id="arrangeDone" class="dlg-btn primary" type="button">Concluído</button>
+    </div>
 
     <section id="panelApps" class="panel panel-left" role="dialog" aria-labelledby="titleApps" hidden>
       <header class="panel-header">
@@ -48,7 +54,7 @@
         <button class="setting-row" type="button" id="androidSettingsBtn">
           <img data-icon="ic_settings" alt="">Definições do Android
         </button>
-        <p class="settings-note">Mantém premida uma aplicação para a afixar ou remover. Arrasta os ícones afixados para os reordenar.</p>
+        <p class="settings-note">Mantém premida uma aplicação para a renomear, mudar o ícone, afixar, desinstalar ou ver as informações. Para reordenar os ícones afixados, escolhe «Organizar».</p>
       </div>
     </section>
 
@@ -62,30 +68,47 @@
           <img data-icon="ic_close" alt="">
         </button>
       </header>
+
       <div class="quick-settings">
-        <button class="quick-toggle" id="wifiToggle" type="button" aria-pressed="false">
-          <img id="wifiIcon" data-icon="ic_wifi" alt="">Wi-Fi
+        <button class="qs-tile" id="wifiToggle" type="button" aria-pressed="false">
+          <span class="qs-icon"><img id="wifiIcon" data-icon="ic_wifi" alt=""></span>
+          <span class="qs-text"><strong>Wi-Fi</strong><small id="wifiState">Desligado</small></span>
         </button>
-        <button class="quick-toggle" id="bluetoothToggle" type="button" aria-pressed="false">
-          <img data-icon="ic_bluetooth" alt="">Bluetooth
+        <button class="qs-tile" id="bluetoothToggle" type="button" aria-pressed="false">
+          <span class="qs-icon"><img data-icon="ic_bluetooth" alt=""></span>
+          <span class="qs-text"><strong>Bluetooth</strong><small id="bluetoothState">Desligado</small></span>
         </button>
-        <button class="quick-toggle" id="locationToggle" type="button">
-          <img data-icon="ic_location" alt="">Localização
-        </button>
-      </div>
-      <div class="range-row">
-        <img data-icon="ic_volume_up" id="volumeRangeIcon" alt="">
-        <label for="volumeRange">Volume</label>
-        <input id="volumeRange" type="range" min="0" max="100" value="50">
-        <button id="muteBtn" class="mini-btn" type="button">
-          <img data-icon="ic_volume_mute" alt="">Silenciar
+        <button class="qs-tile" id="locationToggle" type="button" aria-pressed="false">
+          <span class="qs-icon"><img data-icon="ic_location" alt=""></span>
+          <span class="qs-text"><strong>Localização</strong><small id="locationState">Desligado</small></span>
         </button>
       </div>
-      <div class="range-row">
-        <img data-icon="ic_light_mode" alt="">
-        <label for="brightnessRange">Brilho</label>
-        <input id="brightnessRange" type="range" min="1" max="100" value="50">
+
+      <div class="sliders">
+        <div class="slider-row">
+          <button id="muteBtn" class="slider-icon" type="button" aria-label="Silenciar">
+            <img id="muteIcon" data-icon="ic_volume_up" alt="">
+          </button>
+          <div class="slider-body">
+            <div class="slider-head">
+              <label for="volumeRange">Volume</label>
+              <output id="volumeValue" for="volumeRange">50%</output>
+            </div>
+            <input id="volumeRange" type="range" min="0" max="100" value="50">
+          </div>
+        </div>
+        <div class="slider-row">
+          <span class="slider-icon" aria-hidden="true"><img data-icon="ic_light_mode" alt=""></span>
+          <div class="slider-body">
+            <div class="slider-head">
+              <label for="brightnessRange">Brilho</label>
+              <output id="brightnessValue" for="brightnessRange">50%</output>
+            </div>
+            <input id="brightnessRange" type="range" min="1" max="100" value="50">
+          </div>
+        </div>
       </div>
+
       <div class="notification-heading">
         <strong>Notificações</strong>
         <button id="clearNotificationsBtn" class="text-btn" type="button">Limpar tudo</button>
@@ -111,33 +134,49 @@
 
     <div id="ctxMenu" class="context-menu" role="menu" hidden></div>
 
-    <footer class="taskbar">
-      <button id="startBtn" class="dock-btn start-btn" type="button" aria-label="Aplicações" aria-expanded="false" title="Aplicações">
-        <img data-icon="ic_category" alt="">
-      </button>
+    <div id="dialog" class="dialog-backdrop" hidden>
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+        <h3 id="dlgTitle"></h3>
+        <div id="dlgBody" class="dialog-body"></div>
+        <div class="dialog-actions">
+          <button id="dlgCancel" class="dlg-btn" type="button">Cancelar</button>
+          <button id="dlgOk" class="dlg-btn primary" type="button">Guardar</button>
+        </div>
+      </div>
+    </div>
 
-      <div class="dock-zone">
-        <div id="dock" class="dock" role="toolbar" aria-label="Barra de tarefas"></div>
+    <footer class="taskbar">
+      <div class="taskbar-left">
+        <button id="startBtn" class="dock-btn start-btn" type="button" aria-label="Aplicações" aria-expanded="false" title="Aplicações">
+          <img data-icon="ic_category" alt="">
+        </button>
+      </div>
+
+      <div class="taskbar-center">
         <form id="dockSearchForm" class="dock-search-form" role="search">
-          <label class="sr-only" for="dockSearch">Pesquisar na Web ou aplicações</label>
-          <input id="dockSearch" type="search" placeholder="Pesquisar na Web ou aplicações" autocomplete="off" enterkeyhint="search">
+          <label class="sr-only" for="dockSearch">Pesquisar aplicações, definições ou na Web</label>
+          <input id="dockSearch" type="search" placeholder="Pesquisar" autocomplete="off" enterkeyhint="search">
           <button type="submit" aria-label="Pesquisar">
             <img data-icon="ic_search" alt="">
           </button>
         </form>
+        <div id="searchSuggest" class="search-suggest" role="listbox" aria-label="Sugestões" hidden></div>
       </div>
 
-      <div class="taskbar-end">
-        <button id="volumeBtn" class="dock-btn volume-btn" type="button" aria-label="Volume" title="Volume">
-          <img id="volumeIcon" data-icon="ic_volume_up" alt="">
-        </button>
-        <button id="trayBtn" class="dock-btn tray-btn" type="button" aria-label="Notificações" aria-expanded="false" title="Notificações">
-          <img data-icon="ic_notifications" alt="">
-          <span id="notificationDot" class="notification-dot" hidden></span>
-        </button>
-        <div class="clock" aria-live="off">
-          <span id="time">--:--</span>
-          <small id="date"></small>
+      <div class="taskbar-right">
+        <div id="dock" class="dock" role="toolbar" aria-label="Aplicações fixadas"></div>
+        <div class="taskbar-end">
+          <button id="volumeBtn" class="dock-btn volume-btn" type="button" aria-label="Volume" title="Volume">
+            <img id="volumeIcon" data-icon="ic_volume_up" alt="">
+          </button>
+          <button id="trayBtn" class="dock-btn tray-btn" type="button" aria-label="Notificações" aria-expanded="false" title="Notificações">
+            <img data-icon="ic_notifications" alt="">
+            <span id="notificationDot" class="notification-dot" hidden></span>
+          </button>
+          <div class="clock" aria-live="off">
+            <span id="time">--:--</span>
+            <small id="date"></small>
+          </div>
         </div>
       </div>
     </footer>

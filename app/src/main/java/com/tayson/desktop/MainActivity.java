@@ -382,6 +382,39 @@ public class MainActivity extends Activity {
             } catch (Exception ignored) { }
         }
 
+        /** Estado da localização (ligada/desligada) para o botão do centro de ações. */
+        @JavascriptInterface
+        public boolean isLocationEnabled() {
+            try {
+                int mode = Settings.Secure.getInt(getContentResolver(), Settings.Secure.LOCATION_MODE);
+                return mode != Settings.Secure.LOCATION_MODE_OFF;
+            } catch (Exception e) { return false; }
+        }
+
+        /** Abre o ecrã de informações da aplicação (armazenamento, permissões, etc.). */
+        @JavascriptInterface
+        public void openAppInfo(String packageName) {
+            if (packageName == null || packageName.isEmpty()) return;
+            try {
+                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        android.net.Uri.parse("package:" + packageName));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+            } catch (Exception ignored) { }
+        }
+
+        /** Pede ao Android a desinstalação; o próprio sistema mostra a confirmação. */
+        @JavascriptInterface
+        public void uninstallApp(String packageName) {
+            if (packageName == null || packageName.isEmpty()) return;
+            try {
+                Intent intent = new Intent(Intent.ACTION_DELETE,
+                        android.net.Uri.parse("package:" + packageName));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+            } catch (Exception ignored) { }
+        }
+
         @JavascriptInterface
         public void openAndroidSettings() {
             try {
