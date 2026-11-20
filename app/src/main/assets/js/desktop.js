@@ -1,20 +1,29 @@
-/* Desktop Launcher v1.1.0-beta: ambiente de trabalho, barra de tarefas, painéis e menus.
+/* Desktop Launcher v1.1.2: ambiente de trabalho, barra de tarefas, painéis e menus.
  * Fala com o Android através de window.Desktop (ver MainActivity.java).
  * Fora do Android (ex.: abrir index.html no PC) usa uma ponte de pré-visualização. */
 (function () {
   'use strict';
 
-  const STORE_KEY = 'desktop-launcher.v3';
-  const LEGACY_KEY = 'desktop-launcher.v2';
+  const STORE_KEY = 'desktop-launcher.v4';
+  const LEGACY_KEYS = ['desktop-launcher.v3', 'desktop-launcher.v2'];
   const LONG_PRESS_MS = 450;
-  const MOVE_TOLERANCE_PX = 10;   // movimento que cancela o toque longo e inicia o arrasto
+  const MOVE_TOLERANCE_PX = 10;
   const WALLPAPER_COUNT = 5;
   const WALLPAPER_FILES = ['00.jpg', '01.jpg', '02.jpg', '03.jpg', '04.jpg'];
   const SEARCH_APP_LIMIT = 5;
+  const RECENT_LIMIT = 3;
   const DEFAULT_NAME = 'Utilizador';
   const AVATARS = ['ic_avatar_00', 'ic_avatar_01'];
-  const BAR_DEFAULTS = { height: 56, icon: 30 };
-  const BAR_LIMITS = { height: [52, 84], icon: [20, 40] };
+  const BAR_DEFAULTS = { height: 68, icon: 40 };
+  const BAR_LIMITS = { height: [56, 84], icon: [20, 44] };
+  const OLD_BAR_DEFAULTS = { height: 56, icon: 30 };   // predefinições da 1.0 / 1.1: migradas para as novas
+  const DESK_DEFAULT_ICON = 40;
+  const DESK_LIMIT = [32, 72];
+
+  const SETTINGS_TITLES = {
+    main: 'Configurações', profile: 'Perfil', aspect: 'Aspeto',
+    bar: 'Barra e ícones', apps: 'Aplicações', system: 'Sistema',
+  };
 
   // Ícones de marca usados só quando o sistema não devolve o ícone da app.
   const BRAND_ICONS = [
@@ -54,16 +63,19 @@
     'ic_app_vlc_media_player', 'ic_app_whatsapp',
   ];
 
-  // Ícones do menu de contexto (usam currentColor).
+  // Ícones dos menus (usam currentColor).
   const SVG = {
     pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>',
     image: '<svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M9,42q-1.2,0-2.1-0.9T6,39V9Q6,7.8 6.9,6.9T9,6H39q1.2,0 2.1,0.9T42,9V39q0,1.2-0.9,2.1T39,42H9Zm0-3H39V9H9V39Zm2.8-4.85H36.25l-7.35-9.8L22.3,32.9l-4.65-6.35l-5.85,7.6ZM9,39V9V39Zm9.78-20.23q0.72-0.73 0.72-1.77t-0.73-1.77T16.99,14.5t-1.77,0.73T14.5,17.01t0.73,1.77t1.77,0.73t1.77-0.73Z"/></svg>',
     minus: '<svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M10,25.5v-3H38v3H10Z"/></svg>',
     plus: '<svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M22.5,38V25.5H10v-3h12.5V10h3v12.5H38v3H25.5V38Z"/></svg>',
     arrange: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+    eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
     eyeOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="M2 2l20 20"/></svg>',
     trash: '<svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M13.05,42q-1.24,0-2.12-0.88T10.05,39V10.5H8v-3h9.4V6H30.6V7.5H40v3H37.95V39q0,1.2-0.9,2.1T34.95,42H13.05Zm21.9-31.5H13.05V39h21.9V10.5ZM18.35,34.7h3V14.75h-3V34.7Zm8.3,0h3V14.75h-3V34.7ZM13.05,10.5V39V10.5Z"/></svg>',
     info: '<svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M22.65,34h3V22h-3V34Zm2.52-16.16q0.48-0.46 0.48-1.14q0-0.72-0.47-1.21T24,15t-1.18,0.49T22.35,16.7q0,0.68 0.47,1.14T24,18.3t1.18-0.46ZM24.01,44q-4.14,0-7.78-1.58t-6.36-4.3t-4.3-6.37T4,23.98t1.58-7.78t4.3-6.34t6.37-4.28T24.03,4t7.78,1.57t6.34,4.28t4.28,6.35T44,23.99t-1.57,7.78t-4.28,6.35t-6.35,4.3T24.01,44Zm0.01-3q7.07,0 12.03-4.98T41,23.98T36.06,11.95T24,7q-7.05,0-12.02,4.94T7,24q0,7.05 4.98,12.02T24.03,41ZM24,24Z"/></svg>',
+    close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+    sliders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>',
   };
 
   const $ = (id) => document.getElementById(id);
@@ -87,10 +99,12 @@
     }
   };
   const clampInt = (value, range, fallback) => {
+    if (value === null || value === undefined || value === '') return fallback;
     const n = Math.round(Number(value));
-    if (value === null || value === undefined || value === '' || !Number.isFinite(n)) return fallback;
+    if (!Number.isFinite(n)) return fallback;
     return Math.min(range[1], Math.max(range[0], n));
   };
+  const byName = (a, b) => a.localeCompare(b, 'pt', { sensitivity: 'base' });
 
   const bridge = window.Desktop || createPreviewBridge();
 
@@ -99,23 +113,26 @@
     byPackage: new Map(),
     pins: { desktop: [], dock: [] },
     hidden: [],                                   // pacotes ocultos (somem do launcher todo)
+    recent: [],                                   // apps abertas pelo launcher, mais recente primeiro
     custom: {},                                   // { pacote: { name?: string, icon?: nome } }
     profile: { name: DEFAULT_NAME, avatar: AVATARS[0] },
     wallpaper: 0,                                 // índice 0-4, ou 'custom'
     bar: { height: BAR_DEFAULTS.height, icon: BAR_DEFAULTS.icon },
-    drag: null,                                   // { pkg, zone } enquanto um ícone afixado é arrastado
+    desk: { icon: DESK_DEFAULT_ICON },
     arranging: false,                             // modo "Organizar"
+    selected: null,                               // { pkg, zone } à espera de troca no modo "Organizar"
+    settingsView: 'main',
   };
   const iconCache = new Map();
   const suggest = { items: [] };
   let customUri = '';                             // papel de parede do utilizador, em memória
   let openPanelId = null;
   let dialogOnOk = null;
-  let longPressFired = false;   // o gesto que acabou de acontecer não deve contar como toque
+  let longPressFired = false;                     // o gesto que acabou de acontecer não deve contar como toque
   let notificationsEnabled = false;
   let notificationSignature = '';
 
-  const PANELS = { apps: 'panelApps', notif: 'panelNotif', wallpaper: 'panelWallpaper' };
+  const PANELS = { apps: 'panelApps', notif: 'panelNotif', settings: 'panelSettings' };
 
   /* ---------- Ponte de pré-visualização (só fora do Android) ---------- */
 
@@ -129,6 +146,7 @@
       openApp: (pkg) => console.log('abrir', pkg),
       openAppInfo: (pkg) => console.log('informação', pkg),
       uninstallApp: (pkg) => console.log('desinstalar', pkg),
+      killApp: (pkg) => { console.log('fechar', pkg); return true; },
       openNotificationAccess: () => console.log('acesso às notificações'),
       openAndroidSettings: () => console.log('definições'),
       openWifiSettings: () => console.log('wifi'),
@@ -159,16 +177,16 @@
 
   function loadState() {
     let saved = {};
-    try {
-      saved = JSON.parse(localStorage.getItem(STORE_KEY) || localStorage.getItem(LEGACY_KEY) || '{}') || {};
-    } catch (e) {
-      saved = {};
-    }
+    const raw = [STORE_KEY].concat(LEGACY_KEYS)
+      .map((key) => safe(() => localStorage.getItem(key), null))
+      .find((value) => value);
+    try { saved = JSON.parse(raw || '{}') || {}; } catch (e) { saved = {}; }
     const onlyStrings = (list) => Array.isArray(list) ? list.filter((s) => typeof s === 'string') : [];
 
     state.pins.desktop = onlyStrings(saved.desktop);
     state.pins.dock = onlyStrings(saved.dock);
     state.hidden = onlyStrings(saved.hidden);
+    state.recent = onlyStrings(saved.recent).slice(0, RECENT_LIMIT);
 
     const custom = saved.custom && typeof saved.custom === 'object' ? saved.custom : {};
     Object.keys(custom).forEach((pkg) => {
@@ -184,8 +202,14 @@
     if (AVATARS.indexOf(profile.avatar) !== -1) state.profile.avatar = profile.avatar;
 
     const bar = saved.bar && typeof saved.bar === 'object' ? saved.bar : {};
-    state.bar.height = clampInt(bar.height, BAR_LIMITS.height, BAR_DEFAULTS.height);
-    state.bar.icon = clampInt(bar.icon, BAR_LIMITS.icon, BAR_DEFAULTS.icon);
+    const isOldDefault = Number(bar.height) === OLD_BAR_DEFAULTS.height && Number(bar.icon) === OLD_BAR_DEFAULTS.icon;
+    if (!isOldDefault) {
+      state.bar.height = clampInt(bar.height, BAR_LIMITS.height, BAR_DEFAULTS.height);
+      state.bar.icon = clampInt(bar.icon, BAR_LIMITS.icon, BAR_DEFAULTS.icon);
+    }
+
+    const desk = saved.desk && typeof saved.desk === 'object' ? saved.desk : {};
+    state.desk.icon = clampInt(desk.icon, DESK_LIMIT, DESK_DEFAULT_ICON);
 
     if (saved.wallpaper === 'custom') {
       state.wallpaper = 'custom';
@@ -201,9 +225,11 @@
         desktop: state.pins.desktop,
         dock: state.pins.dock,
         hidden: state.hidden,
+        recent: state.recent,
         custom: state.custom,
         profile: state.profile,
         bar: state.bar,
+        desk: state.desk,
         wallpaper: state.wallpaper,
       }));
     } catch (e) { /* armazenamento indisponível */ }
@@ -275,7 +301,7 @@
     return appIcon(app);
   }
 
-  /* ---------- Aplicações, fixações e ocultação ---------- */
+  /* ---------- Aplicações, fixações, ocultação e apps em segundo plano ---------- */
 
   function loadApps() {
     let list = [];
@@ -283,23 +309,26 @@
     state.apps = list
       .filter((a) => a && a.packageName)
       .map((a) => ({ name: String(a.name || a.packageName), packageName: a.packageName }))
-      .sort((a, b) => a.name.localeCompare(b.name, 'pt', { sensitivity: 'base' }));
+      .sort((a, b) => byName(a.name, b.name));
     state.byPackage = new Map(state.apps.map((a) => [a.packageName, a]));
-    if (state.apps.length) pruneMissingPins();
+    if (state.apps.length) pruneMissing();
     refreshAll();
   }
 
-  /** Tira das fixações e da lista de ocultas as apps que já não existem (ex.: desinstaladas). */
-  function pruneMissingPins() {
+  /** Remove das listas as apps que já não existem (ex.: desinstaladas). */
+  function pruneMissing() {
     let changed = false;
+    const keep = (list) => list.filter((pkg) => state.byPackage.has(pkg));
     ['desktop', 'dock'].forEach((zone) => {
       const before = state.pins[zone].length;
-      state.pins[zone] = state.pins[zone].filter((pkg) => state.byPackage.has(pkg));
+      state.pins[zone] = keep(state.pins[zone]);
       if (state.pins[zone].length !== before) changed = true;
     });
-    const hiddenBefore = state.hidden.length;
-    state.hidden = state.hidden.filter((pkg) => state.byPackage.has(pkg));
-    if (state.hidden.length !== hiddenBefore) changed = true;
+    [['hidden'], ['recent']].forEach(([key]) => {
+      const before = state[key].length;
+      state[key] = keep(state[key]);
+      if (state[key].length !== before) changed = true;
+    });
     if (changed) saveState();
   }
 
@@ -315,12 +344,17 @@
     return state.apps.filter((app) => !isHidden(app.packageName));
   }
 
-  function refreshAll() {
-    renderDesktop();
-    renderDock();
-    renderProfile();
-    renderSettings();
-    if (openPanelId === 'apps') renderApps($('appSearch').value);
+  /** Apps abertas pelo launcher que ainda não estão fixadas na barra (máximo de 3). */
+  function runningApps() {
+    return state.recent
+      .map((pkg) => state.byPackage.get(pkg))
+      .filter((app) => app && !isHidden(app.packageName) && !isPinned('dock', app.packageName))
+      .slice(0, RECENT_LIMIT);
+  }
+
+  function rememberRecent(pkg) {
+    state.recent = [pkg].concat(state.recent.filter((p) => p !== pkg)).slice(0, RECENT_LIMIT);
+    saveState();
   }
 
   function setPinned(zone, pkg, on) {
@@ -341,24 +375,6 @@
     refreshAll();
   }
 
-  /** Coloca `pkg` na zona `zone`, antes de `beforePkg` (ou no fim se for null). */
-  function movePinned(zone, pkg, beforePkg) {
-    const list = state.pins[zone];
-    const oldIndex = list.indexOf(pkg);
-    if (oldIndex !== -1) list.splice(oldIndex, 1);
-    const newIndex = beforePkg ? list.indexOf(beforePkg) : -1;
-    if (newIndex < 0) list.push(pkg);
-    else list.splice(newIndex, 0, pkg);
-    saveState();
-    refreshAll();
-  }
-
-  function removeFromZone(zone, pkg) {
-    const list = state.pins[zone];
-    const index = list.indexOf(pkg);
-    if (index !== -1) list.splice(index, 1);
-  }
-
   /** Guarda (ou apaga, se `value` for vazio) um nome ou ícone personalizado. */
   function setCustom(pkg, key, value) {
     const entry = Object.assign({}, state.custom[pkg]);
@@ -370,124 +386,144 @@
     refreshAll();
   }
 
+  function removeFrom(list, value) {
+    const index = list.indexOf(value);
+    if (index !== -1) list.splice(index, 1);
+  }
+
+  /* ---------- Modo "Organizar": tocar para trocar ---------- */
+
+  /** Toque num ícone no modo "Organizar": seleciona-o, ou troca-o com o que estava selecionado. */
+  function arrangeTap(pkg, zone) {
+    const sel = state.selected;
+    if (!sel) {
+      state.selected = { pkg: pkg, zone: zone };
+    } else if (sel.pkg === pkg && sel.zone === zone) {
+      state.selected = null;
+    } else {
+      swapSlots(sel, { pkg: pkg, zone: zone });
+      state.selected = null;
+      saveState();
+    }
+    refreshAll();
+  }
+
+  /** Move o item selecionado para o fim de uma zona. */
+  function moveSelectedToEnd(zone) {
+    const sel = state.selected;
+    if (!sel) return;
+    removeFrom(state.pins[sel.zone], sel.pkg);
+    removeFrom(state.pins[zone], sel.pkg);
+    state.pins[zone].push(sel.pkg);
+    state.selected = null;
+    saveState();
+    refreshAll();
+  }
+
+  /** Troca as posições de dois itens; se estiverem em zonas diferentes, cada um fica no lugar do outro. */
+  function swapSlots(a, b) {
+    const listA = state.pins[a.zone];
+    const listB = state.pins[b.zone];
+
+    if (listA === listB) {
+      const i = listA.indexOf(a.pkg);
+      const j = listA.indexOf(b.pkg);
+      if (i === -1 || j === -1) return;
+      listA[i] = b.pkg;
+      listA[j] = a.pkg;
+      return;
+    }
+
+    // Caso a app esteja fixada nas duas zonas: evita duplicados, move só o item selecionado.
+    if (listA.indexOf(b.pkg) !== -1 || listB.indexOf(a.pkg) !== -1) {
+      removeFrom(listA, a.pkg);
+      removeFrom(listB, a.pkg);
+      const target = listB.indexOf(b.pkg);
+      if (target === -1) listB.push(a.pkg);
+      else listB.splice(target, 0, a.pkg);
+      return;
+    }
+
+    const i = listA.indexOf(a.pkg);
+    const j = listB.indexOf(b.pkg);
+    if (i === -1 || j === -1) return;
+    listA[i] = b.pkg;
+    listB[j] = a.pkg;
+  }
+
+  /* ---------- Ações sobre apps em segundo plano ---------- */
+
   function launch(app) {
+    if (isHidden(app.packageName)) return;
+    rememberRecent(app.packageName);
     closePanels();
     bridge.openApp(app.packageName);
   }
 
-  /* ---------- Toque longo, arrasto e menu de contexto ---------- */
+  /** Fecha os processos em segundo plano de uma app e retira-a da lista. */
+  function closeRunningApp(pkg) {
+    bridge.killApp(pkg);
+    state.recent = state.recent.filter((p) => p !== pkg);
+    saveState();
+    refreshAll();
+  }
 
-  function attachLongPress(element, onLong) {
+  function closeAllRunning() {
+    state.recent.forEach((pkg) => bridge.killApp(pkg));
+    state.recent = [];
+    saveState();
+    refreshAll();
+  }
+
+  /* ---------- Atualização das vistas ---------- */
+
+  function refreshAll() {
+    renderDesktop();
+    renderDock();
+    renderProfile();
+    if (openPanelId === 'apps') renderApps($('appSearch').value);
+    if (openPanelId === 'settings') renderSettings();
+  }
+
+  function applyDisplaySize() {
+    const style = document.documentElement.style;
+    style.setProperty('--taskbar-h', state.bar.height + 'px');
+    style.setProperty('--dock-icon', state.bar.icon + 'px');
+    style.setProperty('--desk-icon', state.desk.icon + 'px');
+    style.setProperty('--desk-tile-w', Math.max(92, state.desk.icon + 52) + 'px');
+  }
+
+  /* ---------- Toque longo, menus e diálogos ---------- */
+
+  /**
+   * Toque longo em `element`. `filter(target)` decide se o toque inicial conta.
+   * `onLong(x, y)` recebe a posição do dedo.
+   */
+  function attachLongPress(element, onLong, filter) {
     let timer = 0;
     let startX = 0;
     let startY = 0;
     const cancel = () => { clearTimeout(timer); timer = 0; };
 
     element.addEventListener('pointerdown', (e) => {
-      if (e.button > 0) return; // ignora botões secundários e do meio
+      if (e.button > 0) return;
       cancel();
+      if (filter && !filter(e.target)) return;
       startX = e.clientX;
       startY = e.clientY;
       timer = setTimeout(() => {
         timer = 0;
         longPressFired = true;
         if (navigator.vibrate) navigator.vibrate(20);
-        onLong();
+        onLong(startX, startY);
       }, LONG_PRESS_MS);
     });
-    // Mexer o dedo mais do que a tolerância cancela o toque longo (é um arrasto ou um scroll).
+    // Mexer o dedo mais do que a tolerância cancela o toque longo (é um scroll).
     element.addEventListener('pointermove', (e) => {
       if (timer && Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_TOLERANCE_PX) cancel();
     });
     ['pointerup', 'pointerleave', 'pointercancel'].forEach((type) => element.addEventListener(type, cancel));
     element.addEventListener('contextmenu', (e) => e.preventDefault());
-  }
-
-  /** Arrasto por ponteiro, só no modo "Organizar" (o drag-and-drop HTML5 não funciona na WebView). */
-  function makePinnedDraggable(button, zone, pkg) {
-    button.classList.add('pinned-tile');
-    button.dataset.packageName = pkg;
-    button.dataset.zone = zone;
-
-    let pointerId = null;
-    let startX = 0;
-    let startY = 0;
-    let dragging = false;
-
-    button.addEventListener('pointerdown', (e) => {
-      if (e.button > 0 || isContextOpen() || !state.arranging) return;
-      pointerId = e.pointerId;
-      startX = e.clientX;
-      startY = e.clientY;
-      dragging = false;
-    });
-
-    button.addEventListener('pointermove', (e) => {
-      if (e.pointerId !== pointerId || isContextOpen() || !state.arranging) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      if (!dragging) {
-        if (Math.hypot(dx, dy) < MOVE_TOLERANCE_PX) return;
-        dragging = true;
-        longPressFired = true;  // o gesto acaba num arrasto, não num toque
-        try { button.setPointerCapture(pointerId); } catch (err) { /* ignorado */ }
-        button.classList.add('dragging');
-        state.drag = { pkg: pkg, zone: zone };
-      }
-      button.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
-      markDropZone(e.clientX, e.clientY);
-    });
-
-    const finish = (e, drop) => {
-      if (e.pointerId !== pointerId) return;
-      pointerId = null;
-      if (!dragging) return;
-      dragging = false;
-      try { button.releasePointerCapture(e.pointerId); } catch (err) { /* ignorado */ }
-      button.classList.remove('dragging');
-      button.style.transform = '';
-      clearDropMarks();
-      if (drop) dropAt(e.clientX, e.clientY);
-      state.drag = null;
-    };
-    button.addEventListener('pointerup', (e) => finish(e, true));
-    button.addEventListener('pointercancel', (e) => finish(e, false));
-  }
-
-  function markDropZone(x, y) {
-    const hit = document.elementFromPoint(x, y);
-    const zoneEl = hit ? hit.closest('#dock, #desktopIcons') : null;
-    $$('.drop-target').forEach((n) => { if (n !== zoneEl) n.classList.remove('drop-target'); });
-    if (zoneEl) zoneEl.classList.add('drop-target');
-  }
-
-  function clearDropMarks() {
-    $$('.drop-target').forEach((n) => n.classList.remove('drop-target'));
-  }
-
-  function dropAt(x, y) {
-    const drag = state.drag;
-    if (!drag) return;
-    const hit = document.elementFromPoint(x, y);
-    const zoneEl = hit && hit.closest('#dock, #desktopIcons');
-    if (!zoneEl) return; // largado fora da barra ou do ambiente de trabalho: não muda nada
-
-    const zone = zoneEl.id === 'dock' ? 'dock' : 'desktop';
-    const list = state.pins[zone];
-    let beforePkg = null;
-
-    const tile = hit.closest('.pinned-tile');
-    if (tile && tile.dataset.zone === zone) {
-      if (tile.dataset.packageName === drag.pkg) return; // largou em cima de si próprio
-      const r = tile.getBoundingClientRect();
-      const firstHalf = zone === 'dock' ? x < r.left + r.width / 2 : y < r.top + r.height / 2;
-      const index = list.indexOf(tile.dataset.packageName);
-      beforePkg = firstHalf ? tile.dataset.packageName : (list[index + 1] || null);
-      if (beforePkg === drag.pkg) return; // já está nesse lugar
-    }
-
-    if (drag.zone !== zone) removeFromZone(drag.zone, drag.pkg); // mover de uma zona para a outra
-    movePinned(zone, drag.pkg, beforePkg);
   }
 
   function createTile(opts) {
@@ -510,26 +546,50 @@
       button.appendChild(label);
     }
 
+    if (opts.zone) {
+      button.classList.add('pinned-tile');
+      if (state.selected && state.selected.pkg === opts.packageName && state.selected.zone === opts.zone) {
+        button.classList.add('selected');
+      }
+    }
+
     button.addEventListener('click', (event) => {
       if (longPressFired) {
         longPressFired = false;
         event.preventDefault();
         return;
       }
-      if (state.arranging) return; // em "Organizar" um toque não abre a app
+      if (state.arranging) {
+        if (opts.zone) arrangeTap(opts.packageName, opts.zone);
+        return;
+      }
       if (opts.onActivate) opts.onActivate();
     });
 
     if (opts.menu) {
       attachLongPress(button, () => {
-        if (!state.arranging) openContextMenu(opts.menu(), button);
+        if (!state.arranging) {
+          openContextMenu(opts.menu(), button);
+        }
       });
     }
-    if (opts.zone && opts.packageName) makePinnedDraggable(button, opts.zone, opts.packageName);
     return button;
   }
 
-  /* ---------- Menu de contexto ---------- */
+  /** Espaço vazio no fim de uma zona, usado no modo "Organizar" para mover para o fim. */
+  function endSlot(zone) {
+    const button = el('button', 'slot-end');
+    button.type = 'button';
+    button.setAttribute('aria-label', 'Mover para o fim');
+    button.title = 'Mover para o fim';
+    const icon = el('span', 'slot-plus');
+    icon.innerHTML = SVG.plus;
+    button.appendChild(icon);
+    button.addEventListener('click', () => {
+      if (state.selected) moveSelectedToEnd(zone);
+    });
+    return button;
+  }
 
   /** Itens do menu de uma aplicação, agrupados. */
   function appMenu(app) {
@@ -553,16 +613,28 @@
     if (onDesktop || onDock) {
       groups[1].push({ label: 'Organizar', icon: SVG.arrange, action: () => setArranging(true) });
     }
-    groups.push([
-      { label: 'Ocultar', icon: SVG.eyeOff, action: () => setHidden(pkg, true) },
-    ]);
-    groups.push([
-      { label: 'Desinstalar', icon: SVG.trash, danger: true, action: () => openUninstallDialog(app) },
-    ]);
-    groups.push([
-      { label: 'Informação', icon: SVG.info, accent: true, action: () => bridge.openAppInfo(pkg) },
-    ]);
+    groups.push([{ label: 'Ocultar', icon: SVG.eyeOff, action: () => setHidden(pkg, true) }]);
+    groups.push([{ label: 'Desinstalar', icon: SVG.trash, danger: true, action: () => openUninstallDialog(app) }]);
+    groups.push([{ label: 'Informação', icon: SVG.info, accent: true, action: () => bridge.openAppInfo(pkg) }]);
     return groups;
+  }
+
+  /** Menu de uma app em segundo plano: fixar na barra ou fechar. */
+  function runningMenu(app) {
+    const pkg = app.packageName;
+    return [
+      [{ label: 'Fixar na barra', icon: SVG.plus, action: () => setPinned('dock', pkg, true) }],
+      [{ label: 'Fechar app', icon: SVG.close, danger: true, action: () => closeRunningApp(pkg) }],
+    ];
+  }
+
+  /** Menu do espaço vazio do ambiente de trabalho. */
+  function desktopMenu() {
+    return [
+      [{ label: 'Organizar', icon: SVG.arrange, action: () => setArranging(true) }],
+      [{ label: 'Fechar todas as apps', icon: SVG.close, danger: true, action: closeAllRunning }],
+      [{ label: 'Configurações do launcher', icon: SVG.sliders, accent: true, action: () => openPanel('settings') }],
+    ];
   }
 
   function openContextMenu(groups, anchor) {
@@ -647,6 +719,7 @@
         input.maxLength = 40;
         input.value = displayName(app);
         input.setAttribute('aria-label', 'Novo nome');
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') $('dlgOk').click(); });
         body.appendChild(input);
         body.appendChild(el('p', null, 'Deixa o campo vazio para voltar ao nome original («' + app.name + '»).'));
       },
@@ -795,10 +868,11 @@
 
   function setArranging(on) {
     state.arranging = on;
+    state.selected = null;
     $('desktop').classList.toggle('arranging', on);
     $('arrangeBar').hidden = !on;
     closePanels();
-    if (!on) clearDropMarks();
+    refreshAll();
   }
 
   /* ---------- Ambiente de trabalho e barra de tarefas ---------- */
@@ -818,7 +892,8 @@
         menu: () => appMenu(app),
       }));
     });
-    $('deskHint').hidden = count > 0;
+    if (state.arranging) box.appendChild(endSlot('desktop'));
+    $('deskHint').hidden = count > 0 || state.arranging;
   }
 
   function renderDock() {
@@ -834,15 +909,22 @@
         menu: () => appMenu(app),
       }));
     });
+    if (state.arranging) {
+      dock.appendChild(endSlot('dock'));
+      return;
+    }
+    const running = runningApps();
+    if (running.length) {
+      dock.appendChild(el('span', 'dock-sep'));
+      running.forEach((app) => {
+        dock.appendChild(createTile({
+          className: 'dock-tile running', label: displayName(app), icon: displayIcon(app),
+          onActivate: () => launch(app),
+          menu: () => runningMenu(app),
+        }));
+      });
+    }
   }
-
-  function applyBarSize() {
-    const style = document.documentElement.style;
-    style.setProperty('--taskbar-h', state.bar.height + 'px');
-    style.setProperty('--dock-icon', state.bar.icon + 'px');
-  }
-
-  /* ---------- Cabeçalho do perfil e painel de aplicações ---------- */
 
   function renderProfile() {
     $('headerName').textContent = state.profile.name;
@@ -860,13 +942,13 @@
       return;
     }
     if (!apps.length) {
-      grid.appendChild(emptyNode('Todas as aplicações estão ocultas. Podes voltar a mostrá-las em Configurações.'));
+      grid.appendChild(emptyNode('Todas as aplicações estão ocultas. Podes voltar a mostrá-las em Configurações → Aplicações.'));
       return;
     }
     const term = norm(filter).trim();
     const matches = apps
       .filter((a) => norm(displayName(a)).includes(term))
-      .sort((a, b) => displayName(a).localeCompare(displayName(b), 'pt', { sensitivity: 'base' }));
+      .sort((a, b) => byName(displayName(a), displayName(b)));
     if (!matches.length) {
       grid.appendChild(emptyNode('Nenhuma aplicação corresponde à pesquisa.'));
       return;
@@ -884,43 +966,78 @@
     return el('div', 'empty', text);
   }
 
-  /* ---------- Configurações ---------- */
+  /* ---------- Configurações do launcher ---------- */
+
+  function setSettingsView(name) {
+    state.settingsView = SETTINGS_TITLES[name] ? name : 'main';
+    Object.keys(SETTINGS_TITLES).forEach((key) => {
+      $('set' + key.charAt(0).toUpperCase() + key.slice(1)).hidden = key !== state.settingsView;
+    });
+    $('settingsTitle').textContent = SETTINGS_TITLES[state.settingsView];
+    $('settingsBack').hidden = state.settingsView === 'main';
+    renderSettings();
+  }
 
   function renderSettings() {
+    if (openPanelId !== 'settings') return;
     $('settingsName').textContent = state.profile.name;
     applyIcon($('settingsAvatar'), featureIcon(state.profile.avatar));
     syncBarSliders();
-    renderHiddenList();
+    if (state.settingsView === 'aspect') renderWallpapers();
+    if (state.settingsView === 'apps') renderAppsSettings();
   }
 
   function syncBarSliders() {
-    const height = $('barHeightRange');
-    const icon = $('barIconRange');
-    if (!isFocused(height)) height.value = state.bar.height;
-    if (!isFocused(icon)) icon.value = state.bar.icon;
-    $('barHeightValue').textContent = state.bar.height + ' px';
-    $('barIconValue').textContent = state.bar.icon + ' px';
+    const sliders = [
+      ['barHeightRange', 'barHeightValue', state.bar.height, ' px'],
+      ['barIconRange', 'barIconValue', state.bar.icon, ' px'],
+      ['deskIconRange', 'deskIconValue', state.desk.icon, ' px'],
+    ];
+    sliders.forEach(([rangeId, valueId, value, unit]) => {
+      const range = $(rangeId);
+      if (!isFocused(range)) range.value = value;
+      $(valueId).textContent = value + unit;
+    });
   }
 
-  function renderHiddenList() {
-    const box = $('hiddenList');
-    box.innerHTML = '';
-    const hidden = state.apps.filter((app) => isHidden(app.packageName));
-    if (!hidden.length) {
-      box.appendChild(el('p', 'card-note', 'Não há aplicações ocultas. Mantém premida uma aplicação e escolhe «Ocultar».'));
+  /** Lista de todas as aplicações instaladas, com editar e ocultar/mostrar. */
+  function renderAppsSettings() {
+    const list = $('appsList');
+    list.innerHTML = '';
+    if (!state.apps.length) {
+      list.appendChild(el('p', 'card-note', 'Não foi possível carregar as aplicações.'));
       return;
     }
-    hidden.forEach((app) => {
-      const row = el('div', 'hidden-row');
-      const img = el('img');
+    state.apps.forEach((app) => {
+      const hidden = isHidden(app.packageName);
+      const row = el('div', 'app-row' + (hidden ? ' is-hidden' : ''));
+
+      const img = el('img', 'app-row-icon');
       img.alt = '';
       applyIcon(img, displayIcon(app));
-      const name = el('span', 'hidden-name', displayName(app));
-      const show = el('button', 'pill-btn', 'Mostrar');
-      show.type = 'button';
-      show.addEventListener('click', () => setHidden(app.packageName, false));
-      row.append(img, name, show);
-      box.appendChild(row);
+
+      const name = el('span', 'app-row-name', displayName(app));
+
+      const edit = el('button', 'row-action');
+      edit.type = 'button';
+      edit.setAttribute('aria-label', 'Editar ' + displayName(app));
+      edit.title = 'Editar';
+      edit.innerHTML = SVG.pencil;
+      edit.addEventListener('click', () => openContextMenu([
+        [{ label: 'Renomear', icon: SVG.pencil, action: () => openRenameDialog(app) }],
+        [{ label: 'Editar ícone', icon: SVG.image, action: () => openIconDialog(app) }],
+      ], edit));
+
+      const toggle = el('button', 'row-action toggle' + (hidden ? ' off' : ''));
+      toggle.type = 'button';
+      toggle.setAttribute('aria-pressed', String(hidden));
+      toggle.setAttribute('aria-label', hidden ? 'Mostrar ' + displayName(app) : 'Ocultar ' + displayName(app));
+      toggle.title = hidden ? 'Mostrar' : 'Ocultar';
+      toggle.innerHTML = hidden ? SVG.eyeOff : SVG.eye;
+      toggle.addEventListener('click', () => setHidden(app.packageName, !hidden));
+
+      row.append(img, name, edit, toggle);
+      list.appendChild(row);
     });
   }
 
@@ -933,7 +1050,7 @@
     $('desktop').style.backgroundImage = value === 'custom'
       ? 'url("' + customUri + '")'
       : "url('wallpapers/" + pad2(value) + ".jpg')";
-    if (openPanelId === 'wallpaper') renderWallpapers();
+    if (openPanelId === 'settings' && state.settingsView === 'aspect') renderWallpapers();
   }
 
   function renderWallpapers() {
@@ -1103,8 +1220,10 @@
         run: () => bridge.openAndroidSettings() },
       { label: 'Aplicações', icon: 'ic_app', keys: ['aplicacoes', 'apps', 'aplicativos'],
         run: () => openPanel('apps') },
+      { label: 'Configurações do launcher', icon: 'ic_settings', keys: ['launcher', 'configuracoes do launcher', 'preferencias'],
+        run: () => openPanel('settings') },
       { label: 'Papel de parede', icon: 'ic_wallpaper', keys: ['papel', 'parede', 'wallpaper', 'fundo'],
-        run: () => openPanel('wallpaper') },
+        run: () => { openPanel('settings'); setSettingsView('aspect'); } },
       { label: 'Wi-Fi', icon: 'ic_wifi', keys: ['wifi', 'wi-fi', 'rede'],
         run: () => bridge.openWifiSettings() },
       { label: 'Bluetooth', icon: 'ic_bluetooth', keys: ['bluetooth'],
@@ -1197,26 +1316,6 @@
     $('trayBtn').setAttribute('aria-expanded', String(openPanelId === 'notif'));
   }
 
-  function setTab(name) {
-    const apps = name === 'apps';
-    $('appsView').hidden = !apps;
-    $('launcherSettingsView').hidden = apps;
-    $('appsTabBtn').classList.toggle('active', apps);
-    $('settingsTabBtn').classList.toggle('active', !apps);
-    $('appsTabBtn').setAttribute('aria-selected', String(apps));
-    $('settingsTabBtn').setAttribute('aria-selected', String(!apps));
-  }
-
-  function openSettingsTab() {
-    setTab('settings');
-    renderSettings();
-  }
-
-  function openAppsTab() {
-    setTab('apps');
-    renderApps($('appSearch').value);
-  }
-
   function openPanel(id) {
     closePanels();
     openPanelId = id;
@@ -1227,8 +1326,8 @@
     } else if (id === 'notif') {
       refreshQuickSettings();
       refreshNotifications(true);
-    } else if (id === 'wallpaper') {
-      renderWallpapers();
+    } else if (id === 'settings') {
+      setSettingsView('main');
     }
     updateExpandedState();
   }
@@ -1252,6 +1351,12 @@
     $('date').textContent = now.toLocaleDateString('pt-PT');
   }
 
+  /** Espaço vazio do ambiente de trabalho: toque longo abre o menu. */
+  function isEmptyDesktopTarget(target) {
+    if (state.arranging) return false;
+    return !target.closest('.desk-tile, .taskbar, .panel, .arrange-bar, .dialog-backdrop, .context-menu');
+  }
+
   /* ---------- Eventos e arranque ---------- */
 
   function bindEvents() {
@@ -1259,29 +1364,31 @@
     $('trayBtn').addEventListener('click', () => togglePanel('notif'));
     $('notifPermission').addEventListener('click', () => bridge.openNotificationAccess());
     $('appSearch').addEventListener('input', (e) => renderApps(e.target.value));
-    $('appsTabBtn').addEventListener('click', openAppsTab);
-    $('settingsTabBtn').addEventListener('click', openSettingsTab);
-    $('profileChip').addEventListener('click', openSettingsTab);
+    $('profileChip').addEventListener('click', () => { openPanel('settings'); setSettingsView('profile'); });
+    $('openSettingsBtn').addEventListener('click', () => openPanel('settings'));
+    $('settingsBack').addEventListener('click', () => setSettingsView('main'));
+    $$('[data-goto]').forEach((btn) => btn.addEventListener('click', () => setSettingsView(btn.dataset.goto)));
     $('avatarRow').addEventListener('click', openAvatarDialog);
     $('nameRow').addEventListener('click', openNameDialog);
     $('androidSettingsBtn').addEventListener('click', () => bridge.openAndroidSettings());
-    $$('[data-open-wallpaper]').forEach((btn) => btn.addEventListener('click', () => openPanel('wallpaper')));
 
-    $('barHeightRange').addEventListener('input', (e) => {
-      state.bar.height = clampInt(e.target.value, BAR_LIMITS.height, BAR_DEFAULTS.height);
-      applyBarSize();
-      $('barHeightValue').textContent = state.bar.height + ' px';
+    const sliderBindings = [
+      ['barHeightRange', 'barHeightValue', ' px', (v) => { state.bar.height = clampInt(v, BAR_LIMITS.height, BAR_DEFAULTS.height); return state.bar.height; }],
+      ['barIconRange', 'barIconValue', ' px', (v) => { state.bar.icon = clampInt(v, BAR_LIMITS.icon, BAR_DEFAULTS.icon); return state.bar.icon; }],
+      ['deskIconRange', 'deskIconValue', ' px', (v) => { state.desk.icon = clampInt(v, DESK_LIMIT, DESK_DEFAULT_ICON); return state.desk.icon; }],
+    ];
+    sliderBindings.forEach(([rangeId, valueId, unit, apply]) => {
+      const range = $(rangeId);
+      range.addEventListener('input', (e) => {
+        $(valueId).textContent = apply(e.target.value) + unit;
+        applyDisplaySize();
+      });
+      range.addEventListener('change', saveState);
     });
-    $('barHeightRange').addEventListener('change', saveState);
-    $('barIconRange').addEventListener('input', (e) => {
-      state.bar.icon = clampInt(e.target.value, BAR_LIMITS.icon, BAR_DEFAULTS.icon);
-      applyBarSize();
-      $('barIconValue').textContent = state.bar.icon + ' px';
-    });
-    $('barIconRange').addEventListener('change', saveState);
     $('resetBarBtn').addEventListener('click', () => {
       state.bar = { height: BAR_DEFAULTS.height, icon: BAR_DEFAULTS.icon };
-      applyBarSize();
+      state.desk = { icon: DESK_DEFAULT_ICON };
+      applyDisplaySize();
       saveState();
       syncBarSliders();
     });
@@ -1319,6 +1426,14 @@
     });
     $('dialog').addEventListener('click', (e) => { if (e.target === $('dialog')) closeDialog(); });
 
+    // Toque longo no espaço vazio do ambiente abre o menu do ambiente.
+    attachLongPress($('desktop'), (x, y) => {
+      closePanels();
+      openContextMenu(desktopMenu(), {
+        getBoundingClientRect: () => ({ left: x, right: x, top: y, bottom: y, width: 0, height: 0 }),
+      });
+    }, isEmptyDesktopTarget);
+
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       if (!$('dialog').hidden) closeDialog();
@@ -1327,11 +1442,10 @@
       else closePanels();
     });
 
-    // Toque fora de painéis e menus fecha-os. Os tiles do desktop e a barra
-    // tratam dos seus próprios cliques para não abrir e fechar no mesmo gesto.
     // Em fase de captura, antes de qualquer tile: cada toque novo limpa o estado de toque longo.
     document.addEventListener('pointerdown', () => { longPressFired = false; }, true);
 
+    // Toque fora de painéis e menus fecha-os.
     document.addEventListener('pointerdown', (e) => {
       if (isContextOpen() && !e.target.closest('#ctxMenu')) closeContextMenu();
       if (openPanelId && !e.target.closest('.panel, .taskbar, .desk-tile, #ctxMenu, .dialog-backdrop')) closePanels();
@@ -1342,10 +1456,11 @@
     window.addEventListener('focus', () => { if (!state.arranging) loadApps(); });
   }
 
-  // Chamado pelo Android ao premir Voltar: fecha o que estiver aberto.
+  // Chamado pelo Android ao premir Voltar: fecha o que estiver aberto, ou recua uma vista das configurações.
   window.desktopBack = function () {
     if (!$('dialog').hidden) { closeDialog(); return true; }
     if (isContextOpen()) { closeContextMenu(); return true; }
+    if (openPanelId === 'settings' && state.settingsView !== 'main') { setSettingsView('main'); return true; }
     if (openPanelId) { closePanels(); return true; }
     if (state.arranging) { setArranging(false); return true; }
     return false;
@@ -1357,7 +1472,7 @@
       customUri = safe(() => bridge.getCustomWallpaper(), '') || '';
     }
     if (state.wallpaper === 'custom' && !customUri) state.wallpaper = 0;
-    applyBarSize();
+    applyDisplaySize();
     applyWallpaper(state.wallpaper);
     hydrateIcons(document);
     bindEvents();

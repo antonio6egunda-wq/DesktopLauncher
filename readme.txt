@@ -1,80 +1,81 @@
-DESKTOP LAUNCHER - v1.1.0-beta
-==============================
+DESKTOP LAUNCHER - v1.1.2
+=========================
 
 Launcher Android com ambiente de trabalho, barra de tarefas, painel de aplicações,
-centro de ações e personalização de perfil e aspeto.
+centro de ações e configurações do launcher.
 
-Estado: beta. Revisto ao nível do código, mas ainda não validado num conjunto alargado
-de dispositivos. Reporta qualquer problema encontrado.
-
-
-O QUE HÁ DE MELHOR NESTA VERSÃO
--------------------------------
-
-1. Barra de tarefas mais organizada
-   A pesquisa e as aplicações afixadas ficam juntas ao centro, e o bloco de sistema
-   (volume, notificações e relógio) fica na extrema direita, separado por um traço.
-   Deixou de haver um vão grande entre a pesquisa e as aplicações.
-
-2. Altura da barra e tamanho dos ícones ajustáveis
-   Em Configurações → Barra de tarefas, podes escolher a altura (52 a 84 px) e o tamanho
-   dos ícones afixados (20 a 40 px). Há um botão para repor os valores originais.
-
-3. Papel de parede da galeria
-   Além dos cinco papéis de parede incluídos, podes escolher uma imagem da tua galeria.
-   A imagem é guardada na app, por isso não depende da galeria depois de escolhida.
-
-4. Aplicações ocultas
-   No toque longo, a opção «Ocultar» retira a app do painel, da pesquisa, do ambiente de
-   trabalho e da barra. As fixações são mantidas, e podes mostrar a app de novo em
-   Configurações → Aplicações ocultas.
-
-5. Painel de aplicações redesenhado
-   Separador em forma de pílula, pesquisa arredondada, ícones maiores em grelha e sem o
-   indicador de aplicações afixadas.
-
-6. Perfil personalizável
-   Nome de utilizador (até 24 caracteres) e avatar escolhido entre dois avatares incluídos.
-
-7. Ícone novo para o botão de aplicações
-   O botão Iniciar, a entrada «Aplicações» da pesquisa e o ícone de reserva usam agora o
-   novo ícone de aplicações (ic_app).
+Estado: ainda não validado num conjunto alargado de dispositivos. Reporta qualquer
+problema encontrado.
 
 
-FUNCIONALIDADES DO PROJETO
---------------------------
+NOVIDADES DESTA VERSÃO
+----------------------
+
+1. Predefinições da barra: 68 px de altura e ícones de 40 px.
+   Quem tinha as predefinições antigas passa automaticamente para as novas.
+
+2. Modo «Organizar» por toque
+   Toca num ícone e depois noutro: os dois trocam de lugar. Funciona na área de
+   trabalho, na barra e entre as duas. Para mover um item para o fim, seleciona-o e
+   toca no espaço vazio no fim da zona.
+
+3. Tamanho dos ícones da área de trabalho
+   Ajustável em Configurações → Barra e ícones (32 a 72 px).
+
+4. Menu do espaço vazio
+   Mantém premido o espaço vazio do ambiente de trabalho para abrir o menu:
+   Organizar, Fechar todas as apps e Configurações do launcher.
+
+5. Apps em segundo plano na barra
+   Até três aplicações abertas pelo launcher aparecem na barra, depois das fixadas,
+   com um pequeno ponto por baixo. Mantém premida uma delas para a fixar na barra ou
+   para a fechar.
+
+6. Configurações do launcher centradas, por categorias
+   - Perfil: nome e avatar.
+   - Aspeto: papéis de parede predefinidos e imagem da galeria.
+   - Barra e ícones: altura da barra, ícones da barra e ícones do ambiente.
+   - Aplicações: todas as aplicações instaladas, com botão de editar (renomear,
+     ícone) e botão de visibilidade. Quando a app está oculta, o botão fica vermelho.
+   - Sistema: definições do Android.
+
+
+FUNCIONALIDADES
+---------------
 
 AMBIENTE DE TRABALHO
 - Atalhos afixados com os ícones reais das aplicações.
-- Modo «Organizar»: arrasta os atalhos para os reordenar, ou entre o ambiente de trabalho
-  e a barra.
+- Modo «Organizar» por toque (ver acima).
+- Menu do espaço vazio por toque longo.
 - Papel de parede: cinco imagens incluídas ou uma imagem da galeria.
 
 BARRA DE TAREFAS
-- Botão Iniciar, pesquisa centrada e aplicações afixadas.
-- Volume, notificações (com indicador quando há novidades) e relógio com data, à direita.
-- Altura da barra e tamanho dos ícones ajustáveis.
+- Botão de aplicações, pesquisa centrada e aplicações afixadas.
+- Apps em segundo plano, abertas pelo launcher (máximo de três).
+- Volume, notificações (com indicador) e relógio com data, à direita.
 
 PESQUISA
-- Encontra aplicações e definições principais (Wi-Fi, Bluetooth, localização, notificações,
-  papel de parede e definições do Android).
+- Encontra aplicações e definições principais.
 - Sem resultados locais, oferece pesquisa no Google.
-- Acentos são ignorados: «definicoes» encontra «definições».
+- Ignora acentos: «definicoes» encontra «definições».
 
 PAINEL DE APLICAÇÕES
-- Pesquisa e grelha de todas as aplicações visíveis, por ordem alfabética.
-- Toque longo numa aplicação, no ambiente, na barra ou no painel, abre o menu com:
-    · Renomear (nome só no launcher)
-    · Editar ícone (escolha entre ícones incluídos ou o original)
-    · Afixar ou remover do ambiente de trabalho e da barra
+- Pesquisa e grelha das aplicações visíveis, por ordem alfabética.
+- Toque longo numa aplicação abre o menu:
+    · Renomear (só no launcher)
+    · Editar ícone
+    · Afixar ou remover do ambiente e da barra
     · Organizar
     · Ocultar
     · Desinstalar (o Android pede a confirmação final)
-    · Informação da aplicação (definições do sistema)
+    · Informação da aplicação
+- O botão de definições abre as configurações do launcher. O botão no nome de
+  utilizador abre diretamente o perfil.
 
-PERFIL E CONFIGURAÇÕES
-- Nome de utilizador e avatar, editáveis a partir do topo do painel de aplicações.
-- Secções: Perfil, Aspeto, Barra de tarefas, Aplicações ocultas e Sistema.
+CONFIGURAÇÕES DO LAUNCHER
+- Painel centrado, com categorias: Perfil, Aspeto, Barra e ícones, Aplicações e Sistema.
+- Perfil: nome de utilizador (até 24 caracteres) e avatar, entre dois avatares incluídos.
+- Aplicações: lista de todas as aplicações instaladas, com editar e ocultar/mostrar.
 
 CENTRO DE AÇÕES
 - Controlos rápidos de Wi-Fi, Bluetooth e localização, com o estado de cada um.
@@ -84,15 +85,23 @@ CENTRO DE AÇÕES
   · O botão × dispensa uma notificação.
   · «Limpar tudo» remove as notificações ativas.
 
-ATALHOS DO TECLADO E DO SISTEMA
+TECLADO E BOTÃO VOLTAR
 - Escape fecha diálogos, menus e painéis.
-- O botão Voltar fecha o que estiver aberto antes de sair do launcher.
+- O botão Voltar fecha o que estiver aberto e, nas configurações, volta à lista de categorias.
 
 
 REQUISITOS
 ----------
 - Android 6.0 (API 23) ou superior.
 - Para compilar: JDK 17, Android Gradle Plugin 7.4.2, Gradle 7.6.3, compileSdk e targetSdk 33.
+
+
+COMPILAR
+--------
+O workflow em .github/workflows/android.yml compila o APK de debug a cada push para main
+ou master. Também pode ser iniciado manualmente em Actions. O APK fica disponível como
+artefacto «DesktopLauncher-debug».
+
 
 ESTRUTURA
 ---------
@@ -110,8 +119,7 @@ Os ícones de funcionalidade são SVG em icons-src/svg/. Para os converter:
 
     python3 tools/svg_to_vector.py
 
-Não edites à mão os ficheiros ic_*.xml gerados. Para adicionar um ícone, cria um SVG
-em icons-src/svg/ e volta a executar o script.
+Não edites à mão os ficheiros ic_*.xml gerados.
 
 
 PAPEL DE PAREDE PERSONALIZADO
@@ -130,11 +138,13 @@ manualmente.
 
 LIMITAÇÕES CONHECIDAS
 ---------------------
-- Em Android 10 ou superior, o launcher não liga nem desliga o Wi-Fi diretamente: abre o
-  painel oficial do sistema.
+- «Fechar app» e «Fechar todas as apps» encerram apenas os processos em segundo plano.
+  Uma app que esteja visível no ecrã pode continuar aberta; o Android decide quando a
+  encerra. A lista de apps em segundo plano é a das apps abertas pelo launcher, não
+  inclui as abertas por outros meios.
+- Em Android 10 ou superior, o launcher não liga nem desliga o Wi-Fi diretamente: abre
+  o painel oficial do sistema.
 - Em Android 13 ou superior, o Bluetooth também só se controla através das definições.
 - A localização abre sempre as definições do sistema.
 - O controlo de brilho pode exigir a autorização «Modificar definições do sistema».
-- O botão Definições do Android abre as definições do sistema, não um painel próprio.
-- A lista de aplicações atualiza-se ao abrir o painel, ao ganhar foco e ao arrancar.
 - targetSdk está em 33 porque o AGP 7.4.2 não suporta versões superiores.

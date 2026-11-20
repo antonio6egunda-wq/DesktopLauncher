@@ -11,103 +11,156 @@
   <main id="desktop" class="desktop">
 
     <nav id="desktopIcons" class="desktop-icons" aria-label="Ambiente de trabalho"></nav>
-    <p id="deskHint" class="desk-hint" hidden>Mantém premida uma aplicação para a editar ou afixar aqui.</p>
+    <p id="deskHint" class="desk-hint" hidden>Mantém premido o ambiente de trabalho para abrir o menu, ou uma aplicação para a afixar aqui.</p>
 
     <div id="arrangeBar" class="arrange-bar" hidden>
-      <span>Arrasta os ícones para os reordenar</span>
+      <span id="arrangeText">Toca num ícone e depois noutro para trocar de lugar.</span>
       <button id="arrangeDone" class="dlg-btn primary" type="button">Concluído</button>
     </div>
 
-    <!-- Painel de aplicações e definições -->
+    <!-- Painel de aplicações -->
     <section id="panelApps" class="panel panel-left" role="dialog" aria-labelledby="headerName" hidden>
       <header class="apps-header">
-        <button id="profileChip" class="profile-chip" type="button" aria-label="Abrir configurações do perfil">
+        <button id="profileChip" class="profile-chip" type="button" aria-label="Editar perfil">
           <span class="avatar"><img id="headerAvatar" alt=""></span>
           <span class="profile-text">
             <strong id="headerName">Utilizador</strong>
             <small id="headerCount">0 aplicações</small>
           </span>
         </button>
+        <button id="openSettingsBtn" type="button" class="icon-btn" aria-label="Configurações do launcher" title="Configurações do launcher">
+          <img data-icon="ic_settings" alt="">
+        </button>
         <button type="button" class="icon-btn" data-close aria-label="Fechar">
           <img data-icon="ic_close" alt="">
         </button>
       </header>
 
-      <div class="segmented" role="tablist" aria-label="Secções">
-        <button id="appsTabBtn" class="seg-btn active" type="button" role="tab" aria-selected="true">Aplicações</button>
-        <button id="settingsTabBtn" class="seg-btn" type="button" role="tab" aria-selected="false">Configurações</button>
+      <div class="search-field">
+        <img data-icon="ic_search" alt="">
+        <label class="sr-only" for="appSearch">Pesquisar aplicações</label>
+        <input id="appSearch" class="search" type="search" placeholder="Pesquisar aplicações" autocomplete="off">
       </div>
+      <div id="appGrid" class="app-grid"></div>
+    </section>
 
-      <div id="appsView" class="apps-view" role="tabpanel">
-        <div class="search-field">
-          <img data-icon="ic_search" alt="">
-          <label class="sr-only" for="appSearch">Pesquisar aplicações</label>
-          <input id="appSearch" class="search" type="search" placeholder="Pesquisar aplicações" autocomplete="off">
-        </div>
-        <div id="appGrid" class="app-grid"></div>
-      </div>
-
-      <div id="launcherSettingsView" class="launcher-settings" role="tabpanel" hidden>
-        <p class="settings-section">Perfil</p>
-        <div class="settings-card">
-          <button class="setting-row" type="button" id="avatarRow">
-            <span class="avatar avatar-sm"><img id="settingsAvatar" alt=""></span>
-            <span class="row-text"><strong>Avatar</strong><small>Escolher entre os avatares</small></span>
-            <span class="chevron" aria-hidden="true">›</span>
+    <!-- Configurações do launcher (centrado) -->
+    <section id="panelSettings" class="panel panel-center" role="dialog" aria-labelledby="settingsTitle" hidden>
+      <header class="panel-header">
+        <div class="panel-title-row">
+          <button id="settingsBack" class="icon-btn" type="button" aria-label="Voltar" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
           </button>
-          <button class="setting-row" type="button" id="nameRow">
-            <span class="row-icon"><img data-icon="ic_edit" alt=""></span>
-            <span class="row-text"><strong>Nome de utilizador</strong><small id="settingsName">Utilizador</small></span>
-            <span class="chevron" aria-hidden="true">›</span>
-          </button>
+          <div>
+            <small>Launcher</small>
+            <h2 id="settingsTitle">Configurações</h2>
+          </div>
+        </div>
+        <button type="button" class="icon-btn" data-close aria-label="Fechar">
+          <img data-icon="ic_close" alt="">
+        </button>
+      </header>
+
+      <div class="settings-body">
+        <!-- Categorias -->
+        <div id="setMain" class="settings-view">
+          <div class="settings-card">
+            <button class="setting-row" type="button" data-goto="profile">
+              <span class="row-text"><strong>Perfil</strong><small>Nome e avatar</small></span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </button>
+            <button class="setting-row" type="button" data-goto="aspect">
+              <span class="row-text"><strong>Aspeto</strong><small>Papel de parede</small></span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </button>
+            <button class="setting-row" type="button" data-goto="bar">
+              <span class="row-text"><strong>Barra e ícones</strong><small>Tamanho da barra, dos ícones e do ambiente</small></span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </button>
+            <button class="setting-row" type="button" data-goto="apps">
+              <span class="row-text"><strong>Aplicações</strong><small>Editar ou ocultar aplicações instaladas</small></span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </button>
+            <button class="setting-row" type="button" data-goto="system">
+              <span class="row-text"><strong>Sistema</strong><small>Definições do Android</small></span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </button>
+          </div>
         </div>
 
-        <p class="settings-section">Aspeto</p>
-        <div class="settings-card">
-          <button class="setting-row" type="button" data-open-wallpaper>
-            <span class="row-icon"><img data-icon="ic_wallpaper" alt=""></span>
-            <span class="row-text"><strong>Papel de parede</strong><small>Predefinidos ou imagem da galeria</small></span>
-            <span class="chevron" aria-hidden="true">›</span>
-          </button>
+        <!-- Perfil -->
+        <div id="setProfile" class="settings-view" hidden>
+          <div class="settings-card">
+            <button class="setting-row" type="button" id="avatarRow">
+              <span class="avatar avatar-sm"><img id="settingsAvatar" alt=""></span>
+              <span class="row-text"><strong>Avatar</strong><small>Escolher entre os avatares</small></span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </button>
+            <button class="setting-row" type="button" id="nameRow">
+              <span class="row-text"><strong>Nome de utilizador</strong><small id="settingsName">Utilizador</small></span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </button>
+          </div>
         </div>
 
-        <p class="settings-section">Barra de tarefas</p>
-        <div class="settings-card settings-sliders">
-          <div class="slider-row">
-            <div class="slider-body">
-              <div class="slider-head">
-                <label for="barHeightRange">Altura da barra</label>
-                <output id="barHeightValue" for="barHeightRange">56 px</output>
+        <!-- Aspeto -->
+        <div id="setAspect" class="settings-view" hidden>
+          <p class="settings-section">Papel de parede</p>
+          <div id="wallpaperGrid" class="wallpaper-grid"></div>
+          <p class="settings-note">Escolhe um dos predefinidos ou usa uma imagem da tua galeria. Uma nova imagem da galeria substitui a anterior.</p>
+        </div>
+
+        <!-- Barra e ícones -->
+        <div id="setBar" class="settings-view" hidden>
+          <div class="settings-card settings-sliders">
+            <div class="slider-row">
+              <div class="slider-body">
+                <div class="slider-head">
+                  <label for="barHeightRange">Altura da barra</label>
+                  <output id="barHeightValue" for="barHeightRange">68 px</output>
+                </div>
+                <input id="barHeightRange" type="range" min="56" max="84" step="1" value="68">
               </div>
-              <input id="barHeightRange" type="range" min="52" max="84" step="1" value="56">
+            </div>
+            <div class="slider-row">
+              <div class="slider-body">
+                <div class="slider-head">
+                  <label for="barIconRange">Ícones na barra</label>
+                  <output id="barIconValue" for="barIconRange">40 px</output>
+                </div>
+                <input id="barIconRange" type="range" min="20" max="44" step="1" value="40">
+              </div>
+            </div>
+            <div class="slider-row">
+              <div class="slider-body">
+                <div class="slider-head">
+                  <label for="deskIconRange">Ícones no ambiente de trabalho</label>
+                  <output id="deskIconValue" for="deskIconRange">40 px</output>
+                </div>
+                <input id="deskIconRange" type="range" min="32" max="72" step="1" value="40">
+              </div>
+            </div>
+            <div class="settings-footer">
+              <button id="resetBarBtn" class="text-btn" type="button">Repor predefinições</button>
             </div>
           </div>
-          <div class="slider-row">
-            <div class="slider-body">
-              <div class="slider-head">
-                <label for="barIconRange">Tamanho dos ícones</label>
-                <output id="barIconValue" for="barIconRange">30 px</output>
-              </div>
-              <input id="barIconRange" type="range" min="20" max="40" step="1" value="30">
-            </div>
-          </div>
-          <div class="settings-footer">
-            <button id="resetBarBtn" class="text-btn" type="button">Repor predefinições</button>
-          </div>
         </div>
 
-        <p class="settings-section">Aplicações ocultas</p>
-        <div id="hiddenList" class="settings-card hidden-list"></div>
-
-        <p class="settings-section">Sistema</p>
-        <div class="settings-card">
-          <button class="setting-row" type="button" id="androidSettingsBtn">
-            <span class="row-icon"><img data-icon="ic_settings" alt=""></span>
-            <span class="row-text"><strong>Definições do Android</strong></span>
-            <span class="chevron" aria-hidden="true">›</span>
-          </button>
+        <!-- Aplicações instaladas -->
+        <div id="setApps" class="settings-view" hidden>
+          <p class="settings-note">Todas as aplicações instaladas. O botão de visibilidade oculta ou mostra cada uma no launcher.</p>
+          <div id="appsList" class="settings-card apps-list"></div>
         </div>
-        <p class="settings-note">Mantém premida uma aplicação para a renomear, mudar o ícone, ocultar, afixar, desinstalar ou ver as informações.</p>
+
+        <!-- Sistema -->
+        <div id="setSystem" class="settings-view" hidden>
+          <div class="settings-card">
+            <button class="setting-row" type="button" id="androidSettingsBtn">
+              <span class="row-text"><strong>Definições do Android</strong><small>Abrir as definições do sistema</small></span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -172,21 +225,6 @@
       </button>
     </section>
 
-    <!-- Papel de parede -->
-    <section id="panelWallpaper" class="panel panel-right" role="dialog" aria-labelledby="titleWallpaper" hidden>
-      <header class="panel-header">
-        <div>
-          <small>Personalizar</small>
-          <h2 id="titleWallpaper">Papel de parede</h2>
-        </div>
-        <button type="button" class="icon-btn" data-close aria-label="Fechar">
-          <img data-icon="ic_close" alt="">
-        </button>
-      </header>
-      <div id="wallpaperGrid" class="wallpaper-grid"></div>
-      <p class="settings-note">Escolhe um dos predefinidos ou usa uma imagem da tua galeria.</p>
-    </section>
-
     <div id="ctxMenu" class="context-menu" role="menu" hidden></div>
 
     <div id="dialog" class="dialog-backdrop" hidden>
@@ -219,7 +257,7 @@
       </div>
 
       <div class="taskbar-dock">
-        <div id="dock" class="dock" role="toolbar" aria-label="Aplicações fixadas"></div>
+        <div id="dock" class="dock" role="toolbar" aria-label="Aplicações fixadas e em execução"></div>
       </div>
 
       <div class="taskbar-tray">

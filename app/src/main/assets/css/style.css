@@ -118,7 +118,7 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 .pinned-tile { touch-action: none; }
 
 .desk-tile {
-  width: 92px;
+  width: var(--desk-tile-w, 92px);
   min-height: 88px;
   justify-content: flex-start;
   gap: 6px;
@@ -127,8 +127,8 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 }
 
 .desk-tile > img {
-  width: 40px;
-  height: 40px;
+  width: var(--desk-icon, 40px);
+  height: var(--desk-icon, 40px);
   object-fit: contain;
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
 }
@@ -171,19 +171,6 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   font-size: 13px;
   animation: panel-in var(--t-panel) var(--ease);
-}
-
-/* Durante o arrasto: o ícone segue o dedo e o destino fica destacado. */
-.dragging {
-  opacity: 0.85;
-  z-index: 5;
-  pointer-events: none;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  background: var(--surface-raised);
-}
-.drop-target {
-  outline: 2px dashed var(--accent);
-  outline-offset: 2px;
 }
 
 /* ---------- Barra de tarefas ----------
@@ -503,39 +490,6 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
 }
 .profile-text small { font-size: 12px; color: var(--muted); }
 
-/* Separador em forma de pílula. */
-.segmented {
-  flex: 0 0 auto;
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-}
-.seg-btn {
-  flex: 1 1 0;
-  height: 34px;
-  border-radius: 999px;
-  font-size: 13px;
-  color: var(--muted);
-  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
-}
-.seg-btn.active {
-  background: var(--surface-raised);
-  color: var(--text);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-}
-
-/* A vista ativa ocupa o espaço restante do painel e é ela que faz scroll. */
-.apps-view,
-.launcher-settings {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .search-field {
   flex: 0 0 auto;
   position: relative;
@@ -597,13 +551,6 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
   line-height: 1.45;
   text-align: center;
   color: var(--muted);
-}
-
-/* Definições: grupos de cartões, com título discreto por cima de cada um. */
-.launcher-settings {
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 2px;
 }
 
 .settings-section {
@@ -1118,3 +1065,120 @@ img[data-icon] { display: block; flex: 0 0 auto; object-fit: contain; }
     transition: none !important;
   }
 }
+
+/* ---------- v1.1.2 ---------- */
+
+/* Modo "Organizar": toca num ícone e depois noutro para trocar de lugar. */
+.pinned-tile.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* Espaço vazio no fim de cada zona, para mover um item para o fim. */
+.slot-end {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  transition: background var(--t-fast) var(--ease);
+}
+.slot-end:active { background: var(--hover); }
+.slot-end svg { width: 22px; height: 22px; }
+.desktop-icons .slot-end { width: var(--desk-tile-w, 92px); height: 88px; }
+.dock .slot-end { width: calc(var(--dock-icon) + 12px); height: calc(var(--dock-icon) + 12px); }
+
+/* Apps em segundo plano na barra, separadas das fixadas. */
+.dock-sep {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 55%;
+  margin: 0 6px;
+  background: var(--stroke);
+}
+.dock-tile.running::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: #8fc8ff;
+}
+
+/* Configurações do launcher: painel centrado no ecrã. */
+.panel-center {
+  left: 50%;
+  right: auto;
+  top: 50%;
+  bottom: auto;
+  width: min(460px, calc(100% - 24px));
+  max-height: min(640px, calc(100% - 32px));
+  transform: translate(-50%, -50%);
+  animation: panel-in-center var(--t-panel) var(--ease);
+}
+@keyframes panel-in-center {
+  from { opacity: 0; transform: translate(-50%, -48%); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+.panel-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+.settings-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+.settings-view { display: flex; flex-direction: column; gap: 10px; }
+
+/* Lista de aplicações instaladas (Configurações → Aplicações). */
+.app-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 10px;
+}
+.app-row-icon { width: 34px; height: 34px; flex: 0 0 auto; object-fit: contain; }
+.app-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-row.is-hidden .app-row-name,
+.app-row.is-hidden .app-row-icon { opacity: 0.5; }
+
+.row-action {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  transition: background var(--t-fast) var(--ease);
+}
+.row-action:active { background: var(--pressed); }
+.row-action svg { width: 18px; height: 18px; }
+/* Ocultar/mostrar: vermelho quando a app está oculta. */
+.row-action.toggle.off { background: #c0392b; color: #ffffff; }
+.row-action.toggle.off:active { background: #962d22; }
+
+.card-note {
+  margin: 0;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+

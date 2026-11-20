@@ -1,6 +1,7 @@
 package com.tayson.desktop;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -450,6 +451,19 @@ public class MainActivity extends Activity {
         }
 
         /** Abre o ecrã de informações da aplicação (armazenamento, permissões, etc.). */
+        /** Fecha os processos em segundo plano de uma aplicação. Não fecha a app se estiver em primeiro plano. */
+        @JavascriptInterface
+        public boolean killApp(String packageName) {
+            try {
+                ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+                if (am == null || packageName == null) return false;
+                am.killBackgroundProcesses(packageName);
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
         @JavascriptInterface
         public void openAppInfo(String packageName) {
             if (packageName == null || packageName.isEmpty()) return;
