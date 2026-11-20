@@ -1,4 +1,4 @@
-/* Desktop Launcher v1.0.0: ambiente de trabalho, barra de tarefas, painéis e menus.
+/* Desktop Launcher v1.1.0-beta: ambiente de trabalho, barra de tarefas, painéis e menus.
  * Fala com o Android através de window.Desktop (ver MainActivity.java).
  * Fora do Android (ex.: abrir index.html no PC) usa uma ponte de pré-visualização. */
 (function () {
@@ -254,7 +254,7 @@
         const brand = brandIconFor(app.name);
         if (brand) uri = featureIcon(brand);
       }
-      if (!uri) uri = featureIcon('ic_category');
+      if (!uri) uri = featureIcon('ic_app');
       iconCache.set(key, uri);
     }
     return iconCache.get(key);
@@ -1101,7 +1101,7 @@
     return [
       { label: 'Definições do Android', icon: 'ic_settings', keys: ['definicoes', 'configuracoes', 'settings', 'android'],
         run: () => bridge.openAndroidSettings() },
-      { label: 'Aplicações', icon: 'ic_category', keys: ['aplicacoes', 'apps', 'aplicativos'],
+      { label: 'Aplicações', icon: 'ic_app', keys: ['aplicacoes', 'apps', 'aplicativos'],
         run: () => openPanel('apps') },
       { label: 'Papel de parede', icon: 'ic_wallpaper', keys: ['papel', 'parede', 'wallpaper', 'fundo'],
         run: () => openPanel('wallpaper') },
